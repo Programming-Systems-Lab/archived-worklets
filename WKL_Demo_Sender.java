@@ -53,8 +53,7 @@ public class WKL_Demo_Sender extends JFrame implements Serializable {
     try {
       WVM.out = out;
       wvm = new WVM(this, InetAddress.getLocalHost().getHostAddress(), "WKL_Demo_Sender");
-    } catch (UnknownHostException e) {
-    }
+    } catch (UnknownHostException e) { }
   }
   
   private static JFrame _self;
@@ -75,25 +74,38 @@ public class WKL_Demo_Sender extends JFrame implements Serializable {
       }
   };
 
+  private static final Color bg = new Color(22, 106, 175);
 	private Worklet wkl = new Worklet(null);
   private void setupGUI() {
     JTabbedPane tabbedPane = new JTabbedPane();
     JPanel ctrlPanel, logPanel;
     tabbedPane.addTab("", new ImageIcon("images/start.gif"), ctrlPanel = new JPanel(new BorderLayout()), "Control Panel");
     tabbedPane.addTab("", new ImageIcon("images/logs.gif"), logPanel = new JPanel(new BorderLayout()), "Logs");
+		tabbedPane.setBackground(bg);
+		tabbedPane.setForeground(bg);
     mainPanel.add(tabbedPane);
+		mainPanel.setBackground(bg);
 
     /* -- Control panel -- */
 		// Main - Control panel
 		final JPanel mainPanel, controls, listings;
-		ctrlPanel.add(mainPanel= new JPanel(new BorderLayout()), BorderLayout.CENTER);
+		ctrlPanel.add(mainPanel = new JPanel(new BorderLayout()), BorderLayout.CENTER);
 		mainPanel.add(controls = new JPanel(new GridLayout(3, 1)), BorderLayout.WEST);
 		mainPanel.add(new JScrollPane(listings = new JPanel(new GridLayout(10, 1))));
+		mainPanel.setBackground(bg);
+		controls.setBackground(bg);
+		listings.setBackground(bg);
 
 		// Controls - Main - Control panel
 		final JButton addJunc = new JButton("Add junction");
 		final JButton resetJunc  = new JButton("Reset");
 		final JButton sendWorklet = new JButton("Dispatch Worklet");
+		addJunc.setBackground(bg);
+		addJunc.setForeground(Color.white);
+		resetJunc.setBackground(bg);
+		resetJunc.setForeground(Color.white);
+		sendWorklet.setBackground(bg);
+		sendWorklet.setForeground(Color.white);
 		sendWorklet.setEnabled(false);
 		controls.add(addJunc);
 		controls.add(resetJunc);
@@ -104,10 +116,12 @@ public class WKL_Demo_Sender extends JFrame implements Serializable {
 				GridBagConstraints gbc = new GridBagConstraints();
 				gbc.fill = GridBagConstraints.BOTH;
 				JPanel newPanel = new JPanel(gbl);
+				newPanel.setBackground(bg);
 				listings.add(newPanel);
 
 				// Information entry
 				final JButton okButton = new JButton("OK");
+				okButton.setBackground(bg);
 				gbc.gridheight = 3; // Button has to span 3 rows in height
 				gbc.weighty = 1.0;
 				gbl.setConstraints(okButton, gbc);
@@ -140,7 +154,9 @@ public class WKL_Demo_Sender extends JFrame implements Serializable {
 
 
 				gbl.setConstraints(tfHost, gbc);
-				newPanel.add(new JLabel("Host:"));
+				JLabel hostLabel = new JLabel("Host:");
+				hostLabel.setForeground(Color.white);
+				newPanel.add(hostLabel);
 				gbc.weightx = 3.0;
 				gbc.gridwidth = GridBagConstraints.REMAINDER;
 				gbl.setConstraints(tfHost, gbc);
@@ -149,7 +165,9 @@ public class WKL_Demo_Sender extends JFrame implements Serializable {
 				gbc.gridwidth = 1; // Reset to default
 				
 				gbl.setConstraints(tfName, gbc);
-				newPanel.add(new JLabel("Name:"));
+				JLabel nameLabel = new JLabel("Name:");
+				nameLabel.setForeground(Color.white);
+				newPanel.add(nameLabel);
 				gbc.weightx = 3.0;
 				gbc.gridwidth = GridBagConstraints.REMAINDER;
 				gbl.setConstraints(tfName, gbc);
@@ -158,7 +176,9 @@ public class WKL_Demo_Sender extends JFrame implements Serializable {
 				gbc.gridwidth = 1; // Reset to default
 				
 				gbl.setConstraints(tfPort, gbc);
-				newPanel.add(new JLabel("Port:"));
+				JLabel portLabel = new JLabel("Port:");
+				portLabel.setForeground(Color.white);
+				newPanel.add(portLabel);
 				gbc.weightx = 3.0;
 				gbc.gridwidth = GridBagConstraints.REMAINDER;
 				gbl.setConstraints(tfPort, gbc);
@@ -221,6 +241,10 @@ public class WKL_Demo_Sender extends JFrame implements Serializable {
 		// Bottom - Control panel
     JPanel bottomPanel = new JPanel(new BorderLayout());
     JButton quitButton = new JButton("Quit");
+		bottomPanel.setBackground(bg);
+		quitButton.setBackground(bg);
+		quitButton.setForeground(Color.white);
+		lastLogLabel.setForeground(Color.white);
     quitButton.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent ae) {
         System.exit(0);
@@ -246,6 +270,10 @@ public class WKL_Demo_Sender extends JFrame implements Serializable {
         logArea.setText("");
       }
     });
+		logPanel.setBackground(bg);
+		jsp.setBackground(bg);
+		labelLogs.setForeground(Color.white);
+		clearLogs.setBackground(bg);
   }
 
 }
