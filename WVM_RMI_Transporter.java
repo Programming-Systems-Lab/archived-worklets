@@ -18,13 +18,24 @@ import java.rmi.registry.*;
 
 class WVM_RMI_Transporter extends WVM_Transporter {
   
+  /** RMI Transportation Unit: the actual object that registers with the rmiRegistry */
   private RTU rtu;
+  
+  /** flag to denote whether the rmi transportation layer is active or not */
   private boolean rmiService;
+
   int _port;
+  
+  /** the locally-hosted rmiRegistry */
   private Registry rmiRegistry;
+  
+  /** flag to denote whether the rmiRegistry is locally hosted */
   private boolean registryService;
+
+  /** creation time of the WVM, used for choosing the oldest WVM to host the rmiRegistry */
   private Date creation;
 
+  /** reference to the host Worklet Virtual Machine */
   private WVM _wvm;
   
   /**
@@ -33,6 +44,10 @@ class WVM_RMI_Transporter extends WVM_Transporter {
   WVM_RMI_Transporter(WVM wvm, String host, String name) {
     this(wvm, host, name, WVM_Host.PORT);
   }
+  
+  /**
+   * Create the rmi-transporter layer for the host WVM
+   */
   WVM_RMI_Transporter(WVM wvm, String host, String name, int port) {
     // start the basic sockets transporter layer
     super(wvm, host, name, port);
@@ -53,6 +68,9 @@ class WVM_RMI_Transporter extends WVM_Transporter {
     setupRMI();
   }
 
+  /**
+   * Attempt to create and host the RMI Registry locally
+   */
   void setupRegistry() {
     // Create RMI Registry
     try {
@@ -73,6 +91,9 @@ class WVM_RMI_Transporter extends WVM_Transporter {
     }
   }
 
+  /**
+   * Register the host WVM with the rmiRegistry
+   */
   void setupRMI() {
     // Setup RMI registration
     final int RMI_RETRIES = 2; 
@@ -97,6 +118,9 @@ class WVM_RMI_Transporter extends WVM_Transporter {
     rmiService = false;
   }
 
+  /**
+   * shutting down the WVM's rmi-transporter layer
+   */
   void shutdown() {
     // shut down communications
     if (rtu != null) rtu.shutdown();
@@ -146,6 +170,11 @@ class WVM_RMI_Transporter extends WVM_Transporter {
     super.shutdown();
   }
   
+  /**
+   * send a worklet via rmi-transportation
+   * @param wkl: worklet to send
+   * @param wj: junction that determines the destination
+   */
   boolean sendWorklet(Worklet wkl, WorkletJunction wj) {
     if (rmiService) {
       try {
@@ -164,51 +193,64 @@ class WVM_RMI_Transporter extends WVM_Transporter {
     return (" @ " + _host + " : " + super._port);
   }
 
+  /**
+   * parses a url used for representing a WVM's addressing information
+   */
   private class WVM_Address {
+    /** ip address / hostName for WVM */
     final String host;
+
+    /** rmi-registration name for the WVM */
     final String name;
+
+    /** port that the WVM is listening on for its TCP communication layer */
     final int port;
-    WVM_Address(String rh, String rn, int rp) {
-      host = rh; name = rn; port = rp;
-    }
-  }
-  private WVM_Address parseWVM_URL(String wvmURL) {
-    StringTokenizer st = new StringTokenizer(wvmURL, "@: ", true);
-    // returns the delimiter characters as tokens as well
     
-    String rHost = "";
-    String rName = "";
-    int rPort = 0;
-    
-    boolean found_AT = false;
-    boolean found_COLON = false;
-    
-    while (st.hasMoreTokens()) {
-      String token = st.nextToken();
-      if (token.equals(":")) {
-        found_COLON = true;
-        continue;
-      }
+    /**
+     * parse out the different addressing fields for representing
+     * the a WVM's location
+     * @param wvmURL: a url that represents a wvm location
+     */
+    WVM_Address(String wvmURL) {
+      StringTokenizer st = new StringTokenizer(wvmURL, "@: ", true);
+      // returns the delimiter characters as tokens as well
       
-      if (token.equals("@")) {
-        found_AT = true;
-        continue;
-      }
+      String rHost = "";
+      String rName = "";
+      int rPort = 0;
       
-      if (found_COLON) {
-        rPort = Integer.parseInt(token);
-      } else if (found_AT) {
-        rHost = token;
-      } else {
-        rName = token;
+      boolean found_AT = false;
+      boolean found_COLON = false;
+      
+      while (st.hasMoreTokens()) {
+        String token = st.nextToken();
+        if (token.equals(":")) {
+          found_COLON = true;
+          continue;
+        }
+        
+        if (token.equals("@")) {
+          found_AT = true;
+          continue;
+        }
+        
+        if (found_COLON) {
+          rPort = Integer.parseInt(token);
+        } else if (found_AT) {
+          rHost = token;
+        } else {
+          rName = token;
+        }
       }
+      host = rHost;
+      name = rName;
+      port = rPort;
     }
-    return new WVM_Address(rHost, rName, rPort);
   }
 
   // Client-side //////////////////////////////////////////////////////////////
   protected boolean ping(String wvmURL) {
-    WVM_Address wa = parseWVM_URL(wvmURL);
+    WVM_Address wa = new WVM_Address(wvmURL);
     String rHost = wa.host;
     String rName = wa.name;
     int rPort = wa.port;
@@ -216,7 +258,7 @@ class WVM_RMI_Transporter extends WVM_Transporter {
   }
 
   protected boolean sendMessage(Object messageKey, Object message, String wvmURL) {
-    WVM_Address wa = parseWVM_URL(wvmURL);
+    WVM_Address wa = new WVM_Address(wvmURL);
     String rHost = wa.host;
     String rName = wa.name;
     int rPort = wa.port;
@@ -224,7 +266,7 @@ class WVM_RMI_Transporter extends WVM_Transporter {
       sendMessage(messageKey, message, rHost, rPort));
   }
   protected Object getMessage(Object messageKey, String wvmURL) {
-    WVM_Address wa = parseWVM_URL(wvmURL);
+    WVM_Address wa = new WVM_Address(wvmURL);
     String rHost = wa.host;
     String rName = wa.name;
     int rPort = wa.port;
@@ -234,6 +276,9 @@ class WVM_RMI_Transporter extends WVM_Transporter {
   }
   // END: Client-side /////////////////////////////////////////////////////////
 
+  /**
+   * RMI Transportation Unit: the actual object that registers with the rmiRegistry
+   */
   class RTU extends UnicastRemoteObject implements WVM_Host {
     
     RTU() throws RemoteException {

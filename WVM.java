@@ -15,21 +15,23 @@ package psl.worklets;
  * 
 */
 
-import psl.worklets.WVMRSL.Registration;
 import java.io.*;
 import java.net.*;
 import java.util.*;
 
+import psl.worklets.WVMRSL.Registration;
+
 public final class WVM extends Thread {
-    public static PrintStream out = System.out;
-    WVM_Transporter transporter;
-    private final Object _system;
-    private static Registration reg; 
-    private static boolean registered;
-    private static Properties reg_ini;
-    private final Hashtable _peers = new Hashtable();
-    private final Vector _installedWorklets = new Vector();
-    private final MultiMap _installedJunctions = new MultiMap();
+  public static PrintStream out = WVM.out;
+  WVM_Transporter transporter;
+  private final Object _system;
+  private final Hashtable _peers = new Hashtable();
+  private final Vector _installedWorklets = new Vector();
+  private final MultiMap _installedJunctions = new MultiMap();
+
+  private static Registration reg; 
+  private static boolean registered;
+  private static Properties reg_ini;
 
   public static boolean NO_BYTECODE_RETRIEVAL_WORKLET = false;
   public final static String time() {
@@ -39,7 +41,7 @@ public final class WVM extends Thread {
 
   public static final int DEBUG = Integer.parseInt(System.getProperty("DEBUG", "0"));
   public static final boolean DEBUG(int d) { return d<DEBUG; }
-  public static final String ini_file = new String(System.getProperty("INIFILE",""));
+  private static final String ini_file = new String(System.getProperty("INIFILE",""));
 
   public WVM(Object system) {
     this(system, null, "WVM");
@@ -72,41 +74,35 @@ public final class WVM extends Thread {
       e.printStackTrace();
     }
     
-    if(initRegistration()){
-	
-	if(Register()){
-	    registered = true;
-	    _myStats.log("Registrationl succesful");
-	} else {
-	    registered = false;
-	    _myStats.log("Registrationl UNSUCCESFUL");
-	}
+    if (initRegistration()) {      
+      if (Register()){
+        registered = true;
+        _myStats.log("Registration succesful");
+      } else {
+        registered = false;
+        _myStats.log("Registration UNSUCCESFUL");
+      }
     } else {
-	System.out.println("Could not init Registration object");
-}
+      WVM.out.println("Could not init Registration object");
+    }
     
     Runtime.getRuntime().addShutdownHook(new Thread() {
       public void run() {
-    if(registered){
-//	System.out.println("Trying to unregister");
-	if(Unregister(true)){
-	    _myStats.log("UnRegistrationl succesful");
-	} else {
-	    _myStats.log("UnRegistrationl UNSUCCESFUL");
-	} 
-    }
-
-   
-	     shutdown();
-       }
-      });
+        if (registered){
+          //	WVM.out.println("Trying to unregister");
+          if (Unregister(true)){
+            _myStats.log("UnRegistrationl succesful");
+          } else {
+            _myStats.log("UnRegistrationl UNSUCCESFUL");
+          } 
+        }
+        shutdown();
+      }
+    });
     start();
   }
 
   public void shutdown() {
-
-
-
     _peers.clear();
     _installedWorklets.clear();
 
@@ -118,25 +114,41 @@ public final class WVM extends Thread {
     WVM.out.println("WVM destroyed");
   }
 
+  /**
+   * Used for keeping track of local worklets, to help determine
+   * which worklet has completed execution, and must move on
+   */
   final static Hashtable _activeWorklets = new Hashtable();
+  
+  /**
+   * Main WVM loop, wait indefinitely for installed worklets
+   */
   public void run() {
-    Worklet _worklet;
     synchronized (this) {
       while (true) {
+        // wait indefinitely to execute installed worklets
         if (_installedWorklets.isEmpty()) {
           try { 
             wait();
           } catch (InterruptedException e) { } 
         }
-        _worklet = (Worklet) _installedWorklets.firstElement();
+        
+        Worklet _worklet = (Worklet) _installedWorklets.firstElement();
         _installedWorklets.removeElement(_worklet);
         String hashCode = (new Integer(_worklet.hashCode())).toString();
+        
+        // this is used to lookup the worklet when it is ready to leave
         _activeWorklets.put(hashCode, _worklet);
         executeWorklet(_worklet, hashCode);
       }
     }
   }
 
+  /**
+   * Used by the transportation layers to install a newly arrived worklet in the 
+   * WVM's repository, so that the WVM can execute it at its earliest convenience
+   * @param _worklet: newly arrived worklet
+   */
   synchronized void installWorklet(Worklet _worklet) {
     _worklet.init(_system, this);
     _installedWorklets.addElement(_worklet);
@@ -145,10 +157,14 @@ public final class WVM extends Thread {
       this.notifyAll();
     }
   }
-  
-  Worklet _executingWorklet;
+
+  /**
+   * Start executing this worklet
+   * @param _worklet: worklet to execute
+   * @param _hashCode: identifier for locating this worklet among all local worklets
+   */
   private void executeWorklet(Worklet _worklet, String _hashCode) {
-    _executingWorklet = _worklet;
+    Worklet _executingWorklet = _worklet;
     _executingWorklet._hashCode = _hashCode;
     // (new Thread(_executingWorklet, _hashCode)).start();
     _executingWorklet.execute();
@@ -158,57 +174,58 @@ public final class WVM extends Thread {
     return (transporter.toString());
   }
 
-
-    public boolean initRegistration(){
-	Properties p = new Properties();
-
-	try{	     
-	    p.load(new FileInputStream(ini_file));
-	} catch(Exception e){
-	    _myStats.log("Error reading properties from file: " + ini_file);
-	    return false;
-	}
-	
-	String ip = p.getProperty("IP");//multicast ip
-	if(ip == null){
-	    _myStats.log("Property missing: IP");
-	    return false;
-	}
-	String port = p.getProperty("PORT");//multicast port
-	if(port == null){
-	    _myStats.log("Property missing: PORT");
-	    return false;
-	}
-	int portt = Integer.parseInt(port);
-
-	String local_port = p.getProperty("LOCAL_PORT");//local server port for registration response
-	if(local_port == null){
-	    _myStats.log("Property missing: LOCAL_PORT");
-	    return false;
-	}
-	int local_portt = Integer.parseInt(local_port);
-
-	try{
-	reg = new 
-Registration(ip,portt,local_portt,"",getWVMName(),getWVMAddr(),getWVMPort());
-        }	catch (Exception e){
-	return false;
-	}
-	return true;
+  // WVM Registration and Lookup ///////////////////////////////////////////////
+  public boolean initRegistration(){
+    Properties p = new Properties();
+    try {
+      p.load(new FileInputStream(ini_file));
+    } catch(Exception e){
+      _myStats.log("Error reading properties from file: " + ini_file);
+      return false;
     }
-
-    public boolean Register(){
-	return reg.Register();
+    
+    String ip = p.getProperty("IP"); //multicast ip
+    if (ip == null) {
+      _myStats.log("Property missing: IP");
+      return false;
     }
-
-    public boolean Unregister(){
-	return reg.Unregister(false);
+    
+    String port = p.getProperty("PORT");//multicast port
+    if (port == null) {
+      _myStats.log("Property missing: PORT");
+      return false;
     }
+    int portt = Integer.parseInt(port);
 
-    public boolean Unregister(boolean dying){
-	System.out.println("Calling unregistration");
-	return reg.Unregister(dying);
-}
+    // local server port for registration response
+    String local_port = p.getProperty("LOCAL_PORT");
+    if(local_port == null){
+      _myStats.log("Property missing: LOCAL_PORT");
+      return false;
+    }
+    int local_portt = Integer.parseInt(local_port);
+
+    try {
+      reg = new Registration(ip, portt, local_portt, "", getWVMName(), getWVMAddr(), getWVMPort());
+    }	catch (Exception e) {
+      return false;
+    }
+    return true;
+  }
+
+  public boolean Register(){
+    return reg.Register();
+  }
+
+  public boolean Unregister(){
+    return reg.Unregister(false);
+  }
+
+  public boolean Unregister(boolean dying){
+    WVM.out.println("Calling unregistration");
+    return reg.Unregister(dying);
+  }
+  // END: WVM Registration and Lookup //////////////////////////////////////////
 
   public int getWVMPort() { return (transporter._port); }
   public String getWVMName() { return (transporter._name); }
@@ -374,56 +391,56 @@ Registration(ip,portt,local_portt,"",getWVMName(),getWVMAddr(),getWVMPort());
 
     // dump some stats about the WVM.
     public void dumpStats(){
-      System.out.println("Printing WVM stats (" + new Date() + ")");
-      System.out.println();
+      WVM.out.println("Printing WVM stats (" + new Date() + ")");
+      WVM.out.println();
 
       printLog();
-      System.out.println();
+      WVM.out.println();
 
       printCurrentJunctions();
-      System.out.println();
+      WVM.out.println();
       
       printSummary();
-      System.out.println();
+      WVM.out.println();
     }
 
     // print the current log.
     private void printLog(){
       Iterator itr = _wvmLog.iterator();
-      System.out.println("WVM log:");
+      WVM.out.println("WVM log:");
       while (itr.hasNext())
-        System.out.println("" + itr.next());
+        WVM.out.println("" + itr.next());
     }
 
     // print the current worklet junctions in the WVM.  We
     // access the _installedJunctions private member in the WVM.
     private void printCurrentJunctions(){
-      System.out.println("Printing current WVM Junctions: " +  "(" + new Date() + ")");	    
+      WVM.out.println("Printing current WVM Junctions: " +  "(" + new Date() + ")");	    
       Set s = _installedJunctions.keySet();
       Iterator setItr = s.iterator();
 
       while (setItr.hasNext()) {
         // Print the WorkletID
         WorkletID id = (WorkletID)setItr.next();
-        System.out.println("WorkletID: " + id + ":");
+        WVM.out.println("WorkletID: " + id + ":");
         Vector v = (Vector)_installedJunctions.get(id);
         
         // Print the WorkletJunctions associated with this WorkletID
         Iterator vecItr = v.iterator();
         while (vecItr.hasNext()) {
           WorkletJunction wj = (WorkletJunction)vecItr.next();
-          System.out.println("  " + wj + ": " + wj.sstate());
+          WVM.out.println("  " + wj + ": " + wj.sstate());
         }
       }
     }
 
     // print the summary
     private void printSummary(){
-      System.out.println("Total accepted: " + _accepted);
-      System.out.println("Total removed: " + _removed);
+      WVM.out.println("Total accepted: " + _accepted);
+      WVM.out.println("Total removed: " + _removed);
 
       // WorkletJunction specific summary
-      System.out.println("Total of " + _installedJunctions.size() + " WorkletID's and " 
+      WVM.out.println("Total of " + _installedJunctions.size() + " WorkletID's and " 
                          + _installedJunctions.sizeValues() + " WorkletJunction(s)");
     }
     
