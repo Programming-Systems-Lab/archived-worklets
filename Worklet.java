@@ -17,6 +17,7 @@ package psl.worklets;
 
 import java.io.*;
 import java.util.*;
+import java.net.URL;
 
 /**
  * The mobile agent that is transported to and from {@link WVM}'s
@@ -53,6 +54,7 @@ public final class Worklet implements Serializable {
 
   /** Collected "data" of WorkletJunction */
   protected Hashtable _payload;
+    public String wid = "";
 
   /** route that the Worket is to take */
   private final Vector _route = new Vector();
@@ -66,6 +68,11 @@ public final class Worklet implements Serializable {
   /** default security */
   private boolean _isSecure = false;
 
+    //class loader to load junctions reconstructed from byte array
+    private transient WorkletClassLoader _ldr = null;
+    //junctions kept as byte arrays
+    public Hashtable byteArrays = new Hashtable();
+
   /**
    * Creates a Worklet with the given {@link WorkletJunction} as the
    * originJunction
@@ -78,6 +85,9 @@ public final class Worklet implements Serializable {
       _wjClasses.add(_oj.getClass());
       _oj._worklet = this;
     }
+
+    // create s String worklet Id
+    wid = new String((new Long(new Date().getTime())).toString()+WVM.wvm_id);
   }
 
   /**
@@ -94,6 +104,20 @@ public final class Worklet implements Serializable {
       _wj._worklet = this;
     }
   }
+
+    
+    /*Add a dummy junction, with actual junction being supplied as byte code*/
+    /*code base for actual junction must be supplied also*/
+    public void addJunction(WorkletJunction _wj, byte []bc,URL url){
+	_wj._originClassServer = url;
+	//add dummy junction
+	addJunction(_wj);
+	//store byte array with actual junction
+	byteArrays.put(_wj.getIndex(),bc);
+
+	// TO DO:
+	//encrypt the byte array
+    }
 
   /**
    * Gets the {@link WorkletJunction} at the origin
@@ -115,10 +139,12 @@ public final class Worklet implements Serializable {
     _system = system;
     if (_atOrigin) {
       _originJunction.sysInit(system, wvm);
+     
     } else {
       classHashSet = new HashSet();
       _wjClasses.removeElement(_currentJunction.getClass());
       _currentJunction.sysInit(system, wvm);
+     
     }
   }
 
@@ -127,12 +153,59 @@ public final class Worklet implements Serializable {
    * {@link WVM} after Worklet has been received.
    */
   void execute() {
+      //  System.out.println("Worklet: execute");
     (new Thread() {
       // create a new thread regardless
       public void run() {
         // 2-do: create _priority variable in WJ:
         // 2-do: existing super-priority thread to inherit higher priorities from ...
         WorkletJunction _wj = _atOrigin ? _originJunction : _currentJunction;
+	if(byteArrays.containsKey(_wj.getIndex())){
+	    try{
+		 _junctions.removeElement(_wj);
+		 //TO DO
+		 // decrypt the byte array if encrypted
+		byte []bytecode = (byte[])byteArrays.get(_wj.getIndex());
+		ByteArrayInputStream baiStream = new ByteArrayInputStream(bytecode);
+		if(WVM.wkltRepository.containsKey(wid)){
+		    _ldr = (WorkletClassLoader)WVM.wkltRepository.get(wid);		    
+		} else {
+		    if (!_atOrigin) {
+			if (_junctions.isEmpty()) returnToOrigin();
+			else {
+			    WVM.err.println("FAILED TO LOAD WJ from BYTES ARRAY: LOADER NOT FOUND!");
+			    WVM.err.println("MOVING ON TO THE NEXT JUNCTION");
+			    moveToNextJunction();
+			    return;
+			}
+		    }
+		}
+		//this must be present
+		_ldr.addTopCodebase(_wj._originClassServer);
+		_ldr.dontSendWorkletId();
+		ObjectInputStream ois = new ObjectInputStream(baiStream) {
+			protected Class resolveClass(ObjectStreamClass v) throws IOException, ClassNotFoundException {
+			    String name = v.getName();
+			    Class c = Class.forName(name, true, _ldr);
+			    return ( (c == null) ? super.resolveClass(v) : c );
+			}
+		    };
+		_wj = (WorkletJunction) ois.readObject();
+		_wj.sysInit(_system, _wvm);
+		baiStream.close();
+	    } catch(Exception e){
+		WVM.err.println("FAILED TO LOAD WJ from BYTES ARRAY:");
+		e.printStackTrace();
+		WVM.err.println("MOVING ON TO THE NEXT JUNCTION");
+		if (!_atOrigin) {
+		    if (_junctions.isEmpty()) returnToOrigin();
+		    else{ 
+			moveToNextJunction();
+			return;
+		    }
+		}
+	    }
+	}
         Thread t = new Thread(_wj, _hashCode);
 	t.setPriority(_wj.getPriority());
         t.start();
@@ -145,7 +218,10 @@ public final class Worklet implements Serializable {
 
         if (!_atOrigin) {
           if (_junctions.isEmpty()) returnToOrigin();
-          else moveToNextJunction();
+          else{ 
+	      moveToNextJunction();
+	      return;
+	  }
         }
       }
     }).start();
@@ -159,12 +235,18 @@ public final class Worklet implements Serializable {
    * @param wvm: {@link WVM} to send the Worklet to
    */
   public void deployWorklet(WVM wvm) {
+      //  System.out.println("Worklet: deployWorklet");
     synchronized (_junctions) {
       _currentJunction = (WorkletJunction) _junctions.firstElement();
       _junctions.removeElement(_currentJunction);
       _junctions.trimToSize();
     }
-
+    //  System.out.println(wid + " " + _junctions.size());
+    try{
+	wvm.regJunctions(wid,_junctions);
+    }catch(Exception e){
+	e.printStackTrace();
+    }
     _wvm = wvm;
     _lHost = wvm.transporter._host;
     _lName = wvm.transporter._name;
@@ -175,7 +257,9 @@ public final class Worklet implements Serializable {
 
   /** Moves the Worklet from one {@link WorkletJunction} to the next */
   void moveToNextJunction() {
+      //   System.out.println("Worklet: moveToNextJunction");
     WVM _tmpWVM = _wvm;
+    _ldr = null;
     synchronized (_junctions) {
       _currentJunction = (WorkletJunction) _junctions.firstElement();
       _junctions.removeElement(_currentJunction);
@@ -202,6 +286,7 @@ public final class Worklet implements Serializable {
 
   /** Moves the Worklet to the {@link WorkletJunction} at the origin */
   void returnToOrigin() {
+      //   System.out.println("Worklet: returnToOrigin");
     WVM _tmpWVM = _wvm;
     _atOrigin = true;
     _currentJunction = null;

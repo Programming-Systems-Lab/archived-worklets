@@ -35,11 +35,15 @@ public abstract class WorkletJunction implements Serializable, Runnable {
   protected String _name;
   /** Socket port number of target system   */
   protected int _port;
+    
+    String appName = null;
 
   /** associated meta-information */
   protected JunctionPlanner _junctionPlanner;
   /** associated identification */
   protected WorkletID _id;
+    protected String wid;
+
   /** tells the {@link Worklet} whether it needs to wait for the WorkletJunction to execute */
   private boolean _dropOff = false;
 
@@ -83,6 +87,9 @@ public abstract class WorkletJunction implements Serializable, Runnable {
   /** left here for backwards compatibility with WJackCondition */
   int _state = 0;
 
+    //index into worklet's hash table where the byte array is
+    public String index = null;
+
   // ---------------------------- Set of Constructors ----------------------------------- //
   /**
    * The complete constructor, creates a WorkletJunction with the
@@ -102,12 +109,15 @@ public abstract class WorkletJunction implements Serializable, Runnable {
    * @param jp; associated {@link JunctionPlanner} that provides meta-information
    */
   public WorkletJunction(String host, String name, int rmiport, int port,
-			 boolean dropOff, WorkletID id, JunctionPlanner jp) {
+			 boolean dropOff, String id, JunctionPlanner jp) {
     _host = host;
     _name = name;
     _port = port;
     _payload = new Hashtable();
     _dropOff = dropOff;
+    
+    if(index == null)
+	index =  new String((new Long(new Date().getTime())).toString());
 
     if (rmiport == -1) {
       try {
@@ -119,7 +129,7 @@ public abstract class WorkletJunction implements Serializable, Runnable {
       _rmiport = rmiport;
     }
 
-    _id = id;
+    wid = id;
     if (_id != null)
       _id.init(this);  // this gives the workletID the reference to this junction.
 
@@ -136,13 +146,34 @@ public abstract class WorkletJunction implements Serializable, Runnable {
    * @param port: port number of socket to try to send through
    */
   public WorkletJunction(String host, String name, int port) {
-    this(host, name, WVM_Host.PORT, port, false, new WorkletID("default"), null);
+    this(host, name, WVM_Host.PORT, port, false, new String("default"), null);
   }
+   
+    public WorkletJunction(String host, String name, int port,String apName) {
+	this(host, name, WVM_Host.PORT, port, false, new String("default"), null);
+	appName = apName;
+    }
+     public WorkletJunction(String host, String name, int port,String apName,String id) {
+	this(host, name, WVM_Host.PORT, port, false, id, null);
+	appName = apName;
+    }
+
+     public WorkletJunction(String host, String name, int port,String apName,String id,String i) {
+	this(host, name, WVM_Host.PORT, port, false, id, null);
+	appName = apName;
+	index = i;
+    }
+
+    public String getIndex(){
+	return index;
+    }
+
 
   /** Entry point function for Threads */
   synchronized final public void run() {
     // register the workletjunction in the WVM.
-    _wvm.registerJunction(this);
+      
+      _wvm.registerJunction(this);
 
     if (_junctionPlanner == null) {
       execute(); 
@@ -150,6 +181,7 @@ public abstract class WorkletJunction implements Serializable, Runnable {
       _junctionPlanner.start();
     }
     // remove the worket junction from the WVM.
+    
     _wvm.removeJunction(this.id());
   }
 
@@ -166,6 +198,7 @@ public abstract class WorkletJunction implements Serializable, Runnable {
    * @param origin: WorkletJunction holding addressing info of the origin
    */
   final void setOriginWorkletJunction(WorkletJunction origin) {
+     	// System.out.println("WorkletJunction: setOriginWorkletJunction"); 
     _originJunction = origin;
   }
 
@@ -200,6 +233,7 @@ public abstract class WorkletJunction implements Serializable, Runnable {
    * @return priority level
    */
   final int getPriority() {
+    	//  System.out.println("WorkletJunction: getPriority");
     return _priority;
   }
 
@@ -209,6 +243,7 @@ public abstract class WorkletJunction implements Serializable, Runnable {
    * @param priority: level of priority
    */
   final void setPriority(int priority) {
+     	// System.out.println("WorkletJunction: setPriority");
     _priority = priority;
   }
 
@@ -240,32 +275,38 @@ public abstract class WorkletJunction implements Serializable, Runnable {
 
   /** @return target hostname */
   final String getHost() {
+     	// System.out.println("WorkletJunction: getHost");
     return (_host);
   }
 
   /** @return target RMI port number */
   final int getRMIPort() {
+    	//  System.out.println("WorkletJunction: getRMIPort");
     return (_rmiport);
   }
 
   /** @return target RMI server name */
   final String getName() {
+     	// System.out.println("WorkletJunction: getName");
     return (_name);
   }
 
   /** @return target socket number */
   final int getPort() {
+    	//  System.out.println("WorkletJunction: getPort");
     return (_port);
   }
 
   /** @return name@host:port */
   public String toString() {
+    	//  System.out.println("WorkletJunction: toString");
     return (_name + "@" + _host + ":" + _port);
   }
 
   /** @return {@link WorkletID} */
-  final WorkletID id() {
-    return _id;
+  final String id() {
+    	//  System.out.println("WorkletJunction: id");
+    return wid;
   }
 
   /**
@@ -319,6 +360,7 @@ public abstract class WorkletJunction implements Serializable, Runnable {
    * @param tm: array of methods
    */
   public final void setTransportMethods(String[] tm){
+    	//  System.out.println("WorkletJunction: setTransportMethods");
     _transportMethods = tm;
   }
 
@@ -328,6 +370,7 @@ public abstract class WorkletJunction implements Serializable, Runnable {
    * @return current transport methods
    */
   public final String[] getTransportMethods(){
+    	//  System.out.println("WorkletJunction: getTransportmethods");
     if (_transportMethods == null){
       if (isSecure())
 	_transportMethods = secureDefault;

@@ -52,7 +52,9 @@ import psl.worklets.*;
 public abstract class ClassServer implements Runnable {
   protected ServerSocket server = null;
   protected int port;
-
+    protected WVM_SSLSocketFactory _sf = null;
+    //table to keep track of which .class files have been pre-sent
+    protected static Hashtable sentByteCodes = new Hashtable();
   /**
    * Constructs a ClassServer that listens on <b>port</b> and
    * obtains a class's bytecodes using the method <b>getBytes</b>.
@@ -70,7 +72,10 @@ public abstract class ClassServer implements Runnable {
     this.port = aPort;
     while (this.port >= aPort) {
       try {
-	if (WVM_sf != null) server = WVM_sf.createServerSocket(this.port);
+	if (WVM_sf != null){
+	    _sf = WVM_sf;
+	    server = WVM_sf.createServerSocket(this.port);
+	}
 	else server = new ServerSocket(this.port);
         break;
       } catch (UnknownHostException e) {
@@ -84,6 +89,10 @@ public abstract class ClassServer implements Runnable {
     // server = new ServerSocket(this.port);
     newListener();
   }
+
+    public int getPort(){
+	return this.port;
+    }
 
   /**
    * Returns an array of bytes containing the bytecodes for
@@ -119,9 +128,11 @@ public abstract class ClassServer implements Runnable {
    */
   public void run() {
     Socket socket = null;
+    boolean got_it = false;
     // accept a connection
     try {
       socket = server.accept();
+      //System.out.println("Accept, port: " + socket.getPort());
       // create a new thread to accept the next connection
       newListener();
     } catch (IOException e) {
@@ -135,18 +146,56 @@ public abstract class ClassServer implements Runnable {
       try {
         // get path to class file from header
         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        String path = getPath(in);
-        // retrieve bytecodes
+        //String path = getPath(in);
+	//get class name and worklet id
+	StringPair sp = getPath(in);
         byte[] bytecodes = null;
-        if (containsKey(path)) {
-          bytecodes = get(path);
-          // WVM.out.println(" + + + Serving cached bytecode for class: " + path);
+	if(sp.string2 != null){
+	    if(WVM.wkltRepository.containsKey(sp.string2,sp.string1)){
+		bytecodes = WVM.wkltRepository.get(sp.string2,sp.string1);
+		if(bytecodes!=null){
+		    got_it = true;
+		}
+	    }
+	}
+        if (!got_it && containsKey(sp.string1)) {
+          bytecodes = get(sp.string1);
+	  // WVM.out.println(" + + + Serving cached bytecode for class: " + sp.string1);
         } else {
           // retrieve bytecodes from the file system
-          bytecodes = getBytes(path);
-          // cache the bytecodes to be sent out
-          put(path, bytecodes);
-          // WVM.out.println(" + + + Caching binary data for file: " + path);
+          bytecodes = getBytes(sp.string1);    
+	  if(bytecodes != null){
+	      // cache the bytecodes to be sent out
+	      if(sp.string2!=null){
+		  WorkletClassLoader wcl;
+		  if(!WVM.wkltRepository.containsKey(sp.string2)){
+		      URL [] urls = new URL[1];
+		      urls[0] = new URL("http://localhost:"+this.port);
+		      wcl = new WorkletClassLoader(urls,_sf,sp.string2);
+		      WVM.wkltRepository.put(sp.string2,wcl);
+		  } else {
+		      wcl = WVM.wkltRepository.get(sp.string2);
+		  }
+		  wcl.putByteCode(sp.string1,bytecodes);
+		  try{
+		      if(!sentByteCodes.containsKey(new String(sp.string2+sp.string1))){
+			     String u = new String("http://"+java.net.InetAddress.getLocalHost().getHostAddress()+":"+this.port+"/");
+			     URL x = new URL(u);
+			     WVM.transporter.sendByteCode(sp.string2,sp.string1,bytecodes,u);
+			     sentByteCodes.put(new String(sp.string2+sp.string1),"");
+		      }
+		  } catch (Exception e){
+		      WVM.out.println("Failed to pre-send bytecode for " + sp.string2);
+		  }
+	      } else {
+		  put(sp.string1, bytecodes);
+	      }
+	  }  else {
+	      out.writeBytes("HTTP/1.0 400 " +  "\r\n");
+	      out.writeBytes("Content-Type: text/html\r\n\r\n");
+	      out.flush();
+	      return;
+	  }
         }
 
         // WVM.out.println("Retrieved bytecodes: " + bytecodes.length);
@@ -177,11 +226,13 @@ public abstract class ClassServer implements Runnable {
         }
       } catch (Exception e) {
         // write out error response
+	  // e.printStackTrace();
         out.writeBytes("HTTP/1.0 400 " + e.getMessage() + "\r\n");
         out.writeBytes("Content-Type: text/html\r\n\r\n");
         out.flush();
       }
     } catch (IOException ex) {
+	ex.printStackTrace();
       // eat exception (could log error to log file, but
       // write out to stdout for now).
       // dp2041: I commented out next two lines.  possible errors are:
@@ -214,20 +265,28 @@ public abstract class ClassServer implements Runnable {
    * Returns the path to the class file obtained from
    * parsing the HTML header.
    */
-  private static String getPath(BufferedReader in) throws IOException {
+  private static StringPair getPath(BufferedReader in) throws IOException {
+      StringPair sp = null;
     String line = in.readLine();
-    // WVM.out.println("\n + + + request is: " + line);
+    WVM.out.println("\n + + + request is: " + line);
     String path = "";
+    String wid = null;
     // extract class from GET line
     if (line.startsWith("GET /")) {
       line = line.substring(5, line.length()-1).trim();
-      int index = line.indexOf(".class ");
+      int index = line.indexOf(".class");
       if (index != -1) {
         path = line.substring(0, index).replace('/', '.');
       } else {
         path = new StringTokenizer(line, " ").nextToken();
       }
       if (WVM.DEBUG(3)) WVM.out.println("path is: " + path);
+      //see if the worklet id is supplied
+      int i = line.indexOf("?");
+      if(i!= -1 ){
+	  //have worklet id
+	  wid = line.substring(i+1,line.length()-8);	  
+      }
     } else {
       throw new IOException("Malformed Header in Class request");
     }
@@ -238,8 +297,9 @@ public abstract class ClassServer implements Runnable {
       // WVM.out.println (" + + + " + line);
     } while ((line.length() != 0) && (line.charAt(0) != '\r') && (line.charAt(0) != '\n'));
     if (path.length() != 0) {
+	sp = new StringPair(path,wid);
       // WVM.out.println("Edited: gskc, 19Feb01 --- returning path: " + path);
-      return path;
+      return sp;
     } else {
       throw new IOException("Malformed Header");
     }
