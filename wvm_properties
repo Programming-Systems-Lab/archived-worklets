@@ -11,9 +11,6 @@
 # chmod a-rwx wvm_properties 
 # chmod u+r wvm_properties
 
-# this first line is needed for internal purposes.
-java.rmi.server.RMIClassLoaderSpi=psl.worklets.WVM_RMIClassLoaderSpi
-
 # WVM host related parameters
 WVM_RMI_PORT=9100	# port that the rmi registry will be created on
 WVM_RMI_NAME=target	# name that the RMI server will be bound to
@@ -26,7 +23,7 @@ WVM_KEYMANAGER=SunX509	# key manager implementation type
 WVM_KEYSTORE=JKS	# key store implementation type
 WVM_RNG=SHA1PRNG	# random number generator algorithm to use
 javax.net.ssl.trustStore=samplecacerts # location of the certified security certificates.
-WVM_HOSTS_ALLOW=localhost,127.0.0.1    # allowed hosts
+WVM_HOSTS_ALLOW=localhost,127.0.0.1,canal,128.59.23.10    # allowed hosts
 WVM_HOSTS_DENY=			       # denied hosts
 WVM_FILE=wvm_properties	# reference to this file
 
@@ -38,4 +35,5 @@ WVM_FILE=wvm_properties	# reference to this file
 # 2: medium security = same as 1 but with a secure RMI Registry
 # 3: high security = secure RMI Registry, secure RMI server, 
 #    secure server socket and secure class loaders.
-WVM_SECURITY_LEVEL=3
+
+WVM_SECURITY_LEVEL=1
