@@ -91,9 +91,9 @@ class WVM_Transporter extends Thread {
     
     MAIN_LOOP: while (_isActive) {
       WVM.out.println("    ready to accept worklets");
-      Socket s;
-      ObjectOutputStream oos;
-      ObjectInputStream ois;
+      Socket s = null;
+      ObjectOutputStream oos = null;
+      ObjectInputStream ois = null;
           try {
         if (!_isActive) shutdown();
         s = _socket.accept();
@@ -161,8 +161,9 @@ class WVM_Transporter extends Thread {
       } catch (IOException e) {
         WVM.out.println("IOException in Worklet receive loop, e: " + e.getMessage());
         e.printStackTrace();
-      } finally {        if (ois != null) ois.close();
-        if (oos != null) oos.close();        if (s != null) s.close();
+      } finally {        try {
+          if (ois != null) ois.close();
+          if (oos != null) oos.close();          if (s != null) s.close();        } catch (IOException ioe) { }
       }
       WVM.out.println();
     }
@@ -195,9 +196,9 @@ class WVM_Transporter extends Thread {
   boolean sendWorklet(Worklet wkl, WorkletJunction wj) {
     String targetHost = wj._host;
     int targetPort = wj._port;        boolean transmissionComplete = false;    
-    Socket s;
-    ObjectOutputStream oos;
-    ObjectInputStream ois;
+    Socket s = null;
+    ObjectOutputStream oos = null;
+    ObjectInputStream ois = null;
         try {
       WVM.out.println("  --  Sending worklet thru sockets");
       s = new Socket(targetHost, targetPort);
@@ -267,17 +268,18 @@ class WVM_Transporter extends Thread {
     } catch (IOException e) {
       WVM.out.println("IOException in sendWorklet, e: " + e.getMessage());
       e.printStackTrace();
-    } finally {
-      if (ois != null) ois.close();
-      if (oos != null) oos.close();      if (s != null) s.close();
+    } finally {      try {
+        if (ois != null) ois.close();
+        if (oos != null) oos.close();        if (s != null) s.close();      } catch (IOException ioe) { }
       return transmissionComplete;
     }
   }    protected boolean ping(String wvmURL) {
-    // 2-do .. well, not really  }    protected boolean ping(String host, int port) {
+    // 2-do .. well, not really    WVM.out.println("WHY AM I EXECUTING? WVM_Transporter.ping(String)");
+    return false;  }    protected boolean ping(String host, int port) {
     // 2-do: really!    boolean transmissionComplete = false;    
-    Socket s;
-    ObjectOutputStream oos;
-    ObjectInputStream ois;
+    Socket s = null;
+    ObjectOutputStream oos = null;
+    ObjectInputStream ois = null;
         try {
       WVM.out.println("  --  pinging peer WVM thru sockets");
       s = new Socket(host, port);
@@ -285,9 +287,16 @@ class WVM_Transporter extends Thread {
       oos = new ObjectOutputStream(s.getOutputStream());
       oos.writeUTF(PING_REQUEST);      // Receive ACK from the peer WVM
       ois = new ObjectInputStream(s.getInputStream());
-      transmissionComplete = ois.readUTF().equals(PING_RESPONSE);    } finally {
-      if (ois != null) ois.close();
-      if (oos != null) oos.close();      if (s != null) s.close();
+      transmissionComplete = ois.readUTF().equals(PING_RESPONSE);    } catch (UnknownHostException e) {
+      WVM.out.println("UnknownHostException in ping, e: " + e.getMessage());
+      e.printStackTrace();
+    } catch (IOException e) {
+      WVM.out.println("IOException in ping, e: " + e.getMessage());
+      e.printStackTrace();
+    } finally {
+      try {
+        if (ois != null) ois.close();
+        if (oos != null) oos.close();        if (s != null) s.close();      } catch (IOException ioe) { }
       return transmissionComplete;    }
   }
 
