@@ -109,7 +109,7 @@ public abstract class ClassServer implements Runnable {
       // create a new thread to accept the next connection
       newListener();
     } catch (IOException e) {
-      WVM.out.println("Class Server died: " + e.getMessage());
+      // WVM.out.println("Class Server died: " + e.getMessage());
       // e.printStackTrace();
       return;
     }
@@ -178,12 +178,12 @@ public abstract class ClassServer implements Runnable {
   }
       
   public void shutdown() {
-    WVM.out.println ("  Shutting down Class Server ...");
+    WVM.out.println ("    Shutting down Class Server");
     try {
       server.close();
       server = null;
     } catch (IOException e) { }
-    WVM.out.println ("Class Server shut down");
+    // WVM.out.println ("Class Server shut down");
   }
 
   /**

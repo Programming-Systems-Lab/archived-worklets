@@ -203,22 +203,21 @@ class WVM_Transporter extends Thread {
         _wvm.installWorklet(wkl);
       } catch (ClassNotFoundException cnfe) {
         WVM.out.println("ClassNotFoundException when receiving message from peer, cnfe: " + cnfe);
-        cnfe.printStackTrace();
+        // cnfe.printStackTrace();
       } catch (SocketException se) {
-        WVM.out.println("WVM Socket died se: " + se);
-        se.printStackTrace();
+        // WVM.out.println("WVM Socket died se: " + se);
+        // se.printStackTrace();
       } catch (IOException ioe) {
         WVM.out.println("IOException in Worklet receive loop, ioe: " + ioe);
-        ioe.printStackTrace();
+        // ioe.printStackTrace();
       } finally {
-        WVM.out.println ("\n\n    getting ready to accept worklets again");
+        if (_isActive) WVM.out.println ("\n\n    getting ready to accept worklets again\n");
         try {
           if (ois != null) ois.close();
           if (oos != null) oos.close();
           if (s != null) s.close();
         } catch (IOException ioe) { }
       }
-      WVM.out.println();
     }
   }
 

@@ -1,3 +1,17 @@
+28 June 2002
+============
+  - debug flag determines what stuff is printed to console .. maybe
+    play around with err / out streams
+  - incorporate sanity checking of rmi Registration both at the hosted
+    rmiRegistry, and at the RTU: cannot rebind to an existing name ..
+    ensure have similar mechanisms and policies in both RMI
+    registration, and WVM registration/lookup system
+  - enable worklets to attach themselves to hooks in the WVM, so that
+    they can specify callback methods that the WVM can invoke upon
+    certain 'interesting' events taking place in the WVM. Expected
+    applications: network logging setup by incoming worklet, alerted
+    when worklets / messages, etc arrive
+
 11 April 2002
 =============
   - integrate proof-carrying code into worklets along with standard

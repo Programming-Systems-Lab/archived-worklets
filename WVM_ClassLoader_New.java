@@ -23,7 +23,7 @@ class WVM_ClassLoader_New extends WVM_ClassLoader {
     _urlSet.add(urls);
   }
   public Class findClass(String name) throws ClassNotFoundException {
-    WVM.out.println(WVM.time() + "WVM_ClassLoader asked to findClass(" + name + ")");
+    // WVM.out.println(WVM.time() + "WVM_ClassLoader asked to findClass(" + name + ")");
     byte bytecode[] = null;
 GOOD_BLOCK:
     if (ClassServer.containsKey(name)) {
@@ -68,7 +68,7 @@ GOOD_BLOCK:
   }
 
   public URL findResource(String name) {
-    WVM.out.println(WVM.time() + "WVM_ClassLoader asked to findResource(" + name + ")");
+    // WVM.out.println(WVM.time() + "WVM_ClassLoader asked to findResource(" + name + ")");
     byte binary[] = null;
     if (! ClassServer.containsKey(name)) {
       Enumeration e = _urlSet.elements();
