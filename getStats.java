@@ -1,21 +1,34 @@
-package psl.worklets;
-
-/**
- *
+/*
+ * @(#)$Name$ $Date$
+ * 
  * Copyright (c) 2001: The Trustees of Columbia University in the City of New York.  All Rights Reserved
- * Copyright (c) 2001: @author Gaurav S. Kc 
+ * Copyright (c) 2001: @author Dan B. Phung
  *
- * modified from SystemDispatch.java
- * @author: Dan Phung
- * dp2041@cs.columbia.edu
- * 
- * 
-*/
+ * CVS version control block - do not edit manually
+ *  $Name$
+ *  $RCSfile$
+ *  $Revision$
+ *  $Date$
+ *  $Source$
+ */
+
+package psl.worklets;
 
 import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.lang.reflect.*;
+
+
+/*
+ * The <code>getStats</code> class is an demo example of the Worklets system that  
+ * shows how one would get useful stats from the WVM.  This file is modified from 
+ * SystemDispatch.java.
+ * 
+ * @version	$Revision$ $Date$
+ * @author	Dan Phung (dp2041@cs.columbia.edu)
+ *
+*/
 
 public class getStats implements Serializable {
 
@@ -28,7 +41,7 @@ public class getStats implements Serializable {
 	    WVM.out.println("usage: java getStats <rHost> <rName> <rPort>");
 	    System.exit(0);
 	}
-	
+
 	String rHost = args[0];
 	String rName = args[1];
 	int rPort = Integer.parseInt(args[2]);
