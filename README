@@ -5,19 +5,20 @@ If you're reading this, then you've decompressed the files succesfully
 and the Worklets System is "installed."  Remember to add the path to
 the psl directory to your classpath.
 
-To create the class files, from the psl directory type: 
+To create the class files, from the psl/worklets directory type: 
 javac *.java http/*.java WVMRSL/*.java
+rmic -d ../.. -classpath ../.. psl.worklets.WVM_RMI_Transporter.RTU psl.worklets.RTU_RegistrarImpl
 
 For updated documentation please visit
 http://www.psl.cs.columbia.edu/Worklets.  Otherwise, documentation is
 provided in this distribution in Worklets.html.  To create the API
-documentation, type: 
-javadoc *.java http/*.java WVMRSL/*.java
+documentation, from the psl/worklets directory type: 
+javadoc -private *.java http/*.java WVMRSL/*.java
 
 provided in the distribution is:
 
 - source files: 
-JunctionPlanner.java	SendMany.java	      WVM_Host.java		  WVM_RMI_Transporter.java
+JunctionPlanner.java		      WVM_Host.java		  WVM_RMI_Transporter.java
 MultiMap.java		WorkletID.java	      WVM_HostnameVerifier.java   WVM_SSLSocketFactory.java
 OptionsParser.java	Worklet.java	      WVM.java			  WVM_Transporter.java
 RTU_RegistrarImpl.java	WorkletJunction.java  WVM_Registry.java
@@ -36,9 +37,14 @@ examples/SystemDispatchDate.java  examples/testPrio.java
 images/icon16.gif  images/logs.gif	   images/SD.gif	 images/ss-target.gif
 images/icon32.gif  images/pslworklets.gif  images/ss-sender.gif  images/start.gif
 
+- documentation (for more, you must do the API documentation procedure mentioned above)
+Worklets.html
+security.html
+
 - misc
 testkeys		: example keysfile
 samplecerts		: example CA certificate file
 wvm_properties		: example WVM File
 Makefile		: Makefile for assisting with program build
 WVMRSL/README.PSLLRS	: README pertinent to WVMRSL
+README			: this file
