@@ -96,13 +96,14 @@ public class WorkletTest4 implements Serializable {
 				//  	    // final Class appClass = Class.forName("gskc.TicTacToe");
 				
 				
-				
-				try{
-				    ByteArrayOutputStream baoStream = new ByteArrayOutputStream();
-				    ObjectOutputStream ooStream = new ObjectOutputStream(baoStream);
+				String u = new String("http://"+java.net.InetAddress.getLocalHost().getHostAddress()+":"+wvm.transporter._webPort+"/");
+				URL x = new URL(u);	
+			// 	try{
+// 				    ByteArrayOutputStream baoStream = new ByteArrayOutputStream();
+// 				    ObjectOutputStream ooStream = new ObjectOutputStream(baoStream);
 
 				    //create byte array out of actual junction to use first
-				    ooStream.writeObject(new WorkletJunction(rHost, rName, rPort,App,wkl.wid) {
+				    wkl.addJunction(new WorkletJunction(rHost, rName, rPort) {
 					public void init(Object system, WVM wvm) {
 					    System.out.println("ORIGINAL JUNCTION"); }
 					public void execute() {
@@ -125,25 +126,25 @@ public class WorkletTest4 implements Serializable {
 						e.printStackTrace();
 					    }
 					}
-				    });
+				    },x);
 				    
-				    byte []wjbytes = baoStream.toByteArray();
-				    baoStream.close();
+				  //   byte []wjbytes = baoStream.toByteArray();
+// 				    baoStream.close();
 				    
-				    String u = new String("http://"+java.net.InetAddress.getLocalHost().getHostAddress()+":"+wvm.transporter._webPort+"/");
-			  	//   System.out.println("\n\nSENDING URL: " + u);
-				    URL x = new URL(u);
+// 				    String u = new String("http://"+java.net.InetAddress.getLocalHost().getHostAddress()+":"+wvm.transporter._webPort+"/");
+// 			  	//   System.out.println("\n\nSENDING URL: " + u);
+// 				    URL x = new URL(u);
 				    
-				    //add byte array along with dummy empty junction tht has only destination info
-				    wkl.addJunction(new WorkletJunction(rHost, rName, rPort,App,wkl.wid) {
-					public void init(Object system, WVM wvm) {}
-					public void execute() {}
-				    },wjbytes,x); 
+// 				    //add byte array along with dummy empty junction tht has only destination info
+// 				    wkl.addJunction(new WorkletJunction(rHost, rName, rPort,App,wkl.wid) {
+// 					public void init(Object system, WVM wvm) {}
+// 					public void execute() {}
+// 				    },wjbytes,x); 
 				    
-				} catch (IOException ioe){
-				    ioe.printStackTrace();
-				    System.exit(-1);
-				}
+// 				} catch (IOException ioe){
+// 				    ioe.printStackTrace();
+// 				    System.exit(-1);
+// 				}
 				
 				/*	} else {
 					wkl.addJunction(new WorkletJunction(rHost, rName, rPort,App,wkl.wid) {
@@ -194,6 +195,10 @@ public class WorkletTest4 implements Serializable {
 	    e.printStackTrace();
 	    System.exit(0);
 	} catch (ClassNotFoundException e) {
+	    WVM.out.println("Exception: " + e.getMessage());
+	    e.printStackTrace();
+	    System.exit(0);   
+	} catch (Exception e) {
 	    WVM.out.println("Exception: " + e.getMessage());
 	    e.printStackTrace();
 	    System.exit(0);
