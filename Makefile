@@ -1,6 +1,14 @@
+# java related stuff
 JCC=javac
 RMI=rmic
 JCFLAGS=
+
+# LaTeX compilation stuff
+name=
+SRC = ${name}.tex
+TEX=latex
+DVIPSFLAGS=-K
+
 
 all:  wkl rmi
 
@@ -15,7 +23,18 @@ rmi: WVM_RMI_Transporter.class
 dm:    WKL_Demo_Sender.java WKL_Demo_Target.java
 	$(JCC) ${JCFLAGS} WKL_Demo_Sender.java WKL_Demo_Target.java
 
+docs: *.java
+	javadoc -private *.java http/*.java WVMRSL/*.java psl/probelets/Probeable.java
+
+# LaTeX compilation stuff
+ps: ${name}.ps
+dvi: ${name}.dvi
+pdf: ${name}.pdf
+
+%.ps: %.dvi; dvips $(DVIPSFLAGS) $* -o
+# %.pdf: %.tex %.dvi; pdflatex $*
+%.pdf: %.ps; ps2pdf $< $@
+
 clean:
 	# Deleting class files ... 
-	rm -f *.class http/*.class WVMRSL/*.class
-
+	rm -f *.class http/*.class WVMRSL/*.class ${name}.{dvi,ps,log,aux}

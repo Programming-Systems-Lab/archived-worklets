@@ -1,57 +1,75 @@
-package psl.worklets;
-
-/* CVS version control block - do not edit manually
+/*
+ * @(#)OptionsParser.java
+ *
+ * Copyright (c) 2002: The Trustees of Columbia University in the City of New York.  All Rights Reserved
+ *
+ * Copyright (c) 2002: @author Dan Phung
+ *
+ * CVS version control block - do not edit manually
  *  $RCSfile$
  *  $Revision$
  *  $Date$
  *  $Source$
  */
 
-/**
- * Copyright (c) 2001: The Trustees of Columbia University in the City
- * of New York.  All Rights Reserved
- * 
- * Copyright (c) 2001: @author Dan Phung
- *  
- */
-
-/** 
- * OptionsParser:
- * Parse the options from the command line for the WVM.
- * 
- */
-
+package psl.worklets;
 import java.io.*;
 
+/** Parses the options from the command line for the {@link WVM} */
 public class OptionsParser {
-  private String _program;	// the name of the program running the parser
+
+  /** Name of the program running the parser */
+  private String _program;
+  /** Output print stream */
   private PrintStream out;
+  /**  Error print stream */
   private PrintStream err;
 
-  // These are the variables used to create the WVM
-  public String name = "WVM_Host";	// the rmi name to bind to.
-  public int port = WVM_Host.PORT;	// the port to create/bind the rmi service on.
-  public String keysfile = null;	// the keysfile containing public/private keys
-  public String password = null;	// the password into the keysfile
-  public String ctx = null;		// the context instance of the security manager
-  public String kmf = null;		// the key manager factory instance type to use
-  public String ks = null;		// the key store instance type to use
-  public String rng = "SHA1PRNG";	// the random number generator algorithm to use
-  public String WVMfile = null;		// the file holding all the WVM properties
+  /** RMI name to bind to (default "WVM_HOST") */
+  public String name = "WVM_Host";
+  /** Port on which to create the RMI registry (default = <code>WVM_Host.PORT</code>) */
+  public int port = WVM_Host.PORT;
+  /** File holding the public/private keys */
+  public String keysfile = null;
+  /** Password into the keysfile */
+  public String password = null;
+  /** <code>SSLContext</code> under which to create the {@link WVM} */
+  public String ctx = null;
+  /** <code>KeyManagerFactory</code> type of use */
+  public String kmf = null;
+  /** <code>KeyStore</code> type to use */
+  public String ks = null;
+  /** <code>SecureRandom</code> (random number generator algorithm) to use (default = SHA1PRNG) */
+  public String rng = "SHA1PRNG";
+  /** File holding all the {@link WVM} properties */
+  public String WVMfile = null;
+  /**
+   * Level of security of the created {@link WVM}
+   */
   public int securityLevel = WVM.NO_SECURITY;	// the default security level of the WVM.
 
+  /** Creates an OptionsParser */
   public OptionsParser(){
     this("");
   }
 
+  /**
+   * Creates an OptionsParser to be used by the specified program
+   *
+   * @param program: Parent process that will the OptionsParser
+   */
   public OptionsParser(String program){
     _program = program;
     out = WVM.out;
     err = WVM.err;
   }
 
-  /** 
+  /**
+   * Parses the options from the environment variables, the WVM file, and the
+   * command line
    *
+   * @param args[]: Arguments, usually from the command prompt as received by main
+   * @return error value
    */
   public int ParseOptions(String args[]) {
 
@@ -75,17 +93,21 @@ public class OptionsParser {
 
     // next we load the WVM file properties
     if (WVMfile != null) loadWVMFile(WVMfile);
-    
+
     // then we load the arguements from the command line.
     int error= 0;
     if (args.length != 0) error = loadCommandLine(args);
 
     // set the system properties to the parameters we have so far.
     setWVMProperties();
-    
+
     return error;
   }
 
+  /**
+   * Loads the {@link WVM} properties related environment variables
+   * and accordingly sets the OptionsParser's internal public fields
+   */
   public void loadSystemProps() {
     String prop = "";
 
@@ -121,11 +143,16 @@ public class OptionsParser {
       if (prop != null) securityLevel = Integer.parseInt(prop);
   }
 
+  /**
+   * Loads and parses the given WVM file
+   *
+   * @param wvmfile: file holding all the WVM related properties
+   */
   public void loadWVMFile(String wvmfile) {
-    
+
     BufferedReader reader = null;
     try {
-      reader = new BufferedReader(new FileReader(wvmfile));      
+      reader = new BufferedReader(new FileReader(wvmfile));
     } catch (FileNotFoundException e){
       err.println("Error with file " + wvmfile + ": " + e);
     }
@@ -148,12 +175,12 @@ public class OptionsParser {
 	buffer = nextline.split("=");
 	if (buffer.length == 1)
 	  continue;
-	
+
 	if (buffer[0].equals("WVM_RMI_PORT"))
 	  port = Integer.parseInt(buffer[1]);
-	else if (buffer[0].equals("WVM_RMI_NAME")) 
+	else if (buffer[0].equals("WVM_RMI_NAME"))
 	  name = buffer[1];
-	else if (buffer[0].equals("WVM_KEYSFILE")) 
+	else if (buffer[0].equals("WVM_KEYSFILE"))
 	  keysfile = buffer[1];
 	else if (buffer[0].equals("WVM_PASSWORD"))
 	  password = buffer[1];
@@ -169,7 +196,7 @@ public class OptionsParser {
 	  securityLevel = Integer.parseInt(buffer[1]);
 	else if (buffer[0].equals("WVM_FILE"))
 	  WVMfile = buffer[1];
-	else 
+	else
 	  System.setProperty(buffer[0], buffer[1]);
       }
       reader.close();
@@ -179,20 +206,26 @@ public class OptionsParser {
     }
   }
 
+  /**
+   * Parses the options from the command line
+   *
+   * @param args[]: Arguments, usually from the command prompt as received by main
+   * @return error code
+   */
   private int loadCommandLine(String[] args) {
     int i=-1;
     while(++i < args.length) {
       String opt = args[i];
-      if (opt.equals("--help") || opt.equals("-help") || opt.equals("-h")) 
+      if (opt.equals("--help") || opt.equals("-help") || opt.equals("-h"))
 	{
 	  printHelp();
 	  return 1;
 	}
-      else if (opt.equals("--name") || opt.equals("-name") || opt.equals("-n")) 
+      else if (opt.equals("--name") || opt.equals("-name") || opt.equals("-n"))
 	name = args[++i];
-      else if (opt.equals("--port") || opt.equals("-port") || opt.equals("-p")) 
+      else if (opt.equals("--port") || opt.equals("-port") || opt.equals("-p"))
 	port = Integer.parseInt(args[++i]);
-      else if (opt.equals("--keysfile") || opt.equals("-keysfile") || opt.equals("-k")) 
+      else if (opt.equals("--keysfile") || opt.equals("-keysfile") || opt.equals("-k"))
 	keysfile = args[++i];
       else if (opt.equals("--password") || opt.equals("-password") || opt.equals("-P"))
 	password = args[++i];
@@ -220,15 +253,21 @@ public class OptionsParser {
 	  if (denied != null) System.setProperty("WVM_HOSTS_DENY", denied + "," + args[++i]);
 	  else System.setProperty("WVM_HOSTS_ALLOW", args[++i]);
 	}
-      else if (opt.equals("--wvmfile") || opt.equals("-wvmfile") || 
+      else if (opt.equals("--wvmfile") || opt.equals("-wvmfile") ||
 	       opt.equals("--file") || opt.equals("-file") || opt.equals("-f"))
 	WVMfile = args[++i];
-      else 
+      else
 	err.println("WVM Error -- unknown arguements: " + opt);
     }
     return 0;
   }
 
+  /**
+   * Sets certain parsed values into the environment.  The environment
+   * variables are: WVM_RMI_NAME, WVM_RMI_PORT, WVM_KEYSFILE,
+   * WVM_SSLCONTEXT, WVM_KEYMANAGER, WVM_KEYSTORE, WVM_RNG,
+   * WVM_SECURITY_LEVEL, and WVM_FILE.
+   */
   public void setWVMProperties() {
     if (name != null) System.setProperty("WVM_RMI_NAME", name);
     if (port != -1) System.setProperty("WVM_RMI_PORT", "" + port);
@@ -241,6 +280,7 @@ public class OptionsParser {
     if (WVMfile != null) System.setProperty("WVM_FILE", WVMfile);
   }
 
+  /** Prints out the usage and help info */
   private void printHelp() {
     out.println("Usage: java " + _program + " <options>");
     out.println("");
@@ -264,7 +304,7 @@ public class OptionsParser {
     out.println("-hostsDeny, -d:\tSpecify the hosts that should be denied access.");
     out.println("-wvmfile, -f:\tThe filename containing the WVM properties (see below).");
     out.println("");
-    out.println(" DESCRIPTION");    
+    out.println(" DESCRIPTION");
     out.println("  To create a plain WVM host you do not need to specify any parameters");
     out.println("  and the RMI server name/port will default to WVM_Host/9100.  To create");
     out.println("  a secure WVM host you will need to specify at least the keysfile, ");

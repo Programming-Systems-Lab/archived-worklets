@@ -1,87 +1,134 @@
-package psl.worklets;
-
-/* CVS version control block - do not edit manually
+/*
+ * @(#)JunctionPlanner.java
+ *
+ * Copyright (c) 2002: The Trustees of Columbia University in the City of New York.  All Rights Reserved
+ *
+ * Copyright (c) 2002: @author Dan Phung (dp2041@cs.columbia.edu)
+ *
+ * CVS version control block - do not edit manually
  *  $RCSfile$
  *  $Revision$
  *  $Date$
  *  $Source$
  */
 
-/* JunctionPlanner: provides meta-information pertaining to a Worklet Junction.
- * author: Dan Phung dp2041@cs.columbia.edu, Gaurav S. Kc gksc@cs.columbia.edu
- * 
- * TODO
- * - must ensure that init(WorkletJunction) is called before the WorkletJunction
- * uses the JunctionPlanner
- * 
- * NOTES
- * - to run instantly, run with a delay of 0
- * - to run with an indefinite wait, run with a delay of -1 (or any negative number)
- * 
- */
+package psl.worklets;
 
 import java.io.*;
 import java.util.*;
 
-/* WorkletJunction execution flow w/ JunctionPlanner
- * 1) The Worklet calls WorkletJunction.run(), which checks
- *    to see whether it has a JunctionPlanner.  
- *    - if it does then it calls JunctionPlanner.start()
- *    - if it doesn't, the worklet junction is simply executed.  
- * 2) In JunctionPlanner.start() it waits:
- *    - for a specified interval, then calls notify()
- *    - until a certain Date, then calls notify()
- *    - indefinitely (interval = 0), waiting for a notify from
- *      the nether regions.
-* 3) After notify is called to wake up the thread, 
- *    WorkletJunction.execute() is called.
+
+/**
+ * Provides meta-information pertaining to a Worklet Junction.  Make
+ * sure you call <code>init(WorkletJunction)</code> before the
+ * {@link WorkletJunction} uses the JunctionPlanner.
+ *
+ * <p>Notes
+ * <li>to run instantly, run with a delay of 0</li>
+ * <li>to run with an indefinite wait, run with a delay of -1 (or any negative number)</li>
+ * <li> _interval and _date are mutually exclusive</li></p>
  */
+/*
+  WorkletJunction execution flow w/ JunctionPlanner
+  1) The Worklet calls WorkletJunction.run(), which checks
+  to see whether it has a JunctionPlanner.
+  - if it does then it calls JunctionPlanner.start()
+  - if it doesn't, the worklet junction is simply executed.
+  2) In JunctionPlanner.start() it waits:
+  - for a specified interval, then calls notify()
+  - until a certain Date, then calls notify()
+  - indefinitely (interval = 0), waiting for a notify from
+    the nether regions.
+  3) After notify is called to wake up the thread,
+     WorkletJunction.execute() is called.
+
+  TODO
+  - check permissions before using the setState (or just get rid of
+    the setState value.
+*/
 public class JunctionPlanner implements Serializable{
 
+  /** {@link WorkletJunction} is ready to be run */
   public static final int STATE_READY      = 0;
+  /** {@link WorkletJunction} is waiting for a predetermined period of time */
   public static final int STATE_WAITING    = 1;
-  public static final int STATE_WAIT_INDEF = 3;
-  public static final int STATE_RUNNING    = 4;
-  public static final int STATE_TERMINATED = 5;
+  /** {@link WorkletJunction} is waiting for an indefinite period of time */
+  public static final int STATE_WAIT_INDEF = 2;
+  /** {@link WorkletJunction} is running */
+  public static final int STATE_RUNNING    = 3;
+  /** {@link WorkletJunction} is terminated */
+  public static final int STATE_TERMINATED = 4;
 
-  private transient WVM _wvm;		// not used presently (2002/05/01: Dan Phung)
-  private transient Object _system;	// not used presently (2002/05/01: Dan Phung)
-  private WKL_XMLDesc _desc;		// not used presently (2002/05/01: Dan Phung)
-  private WorkletJunction _parent;	// a reference to the worklet junction i'm associated with
+  /** The local {@link WVM}. */
+  private transient WVM _wvm;
+  /** The host adapter that acts as a reference to the target system */
+  private transient Object _system;
+  /** Reference to the {@link WorkletJunction} associated with the JunctionPlanner */
 
-  private int _state = STATE_READY;	// state of the worklet junction
+  private WorkletJunction _parent;
+  /** Current state of the {@link WorkletJunction} */
+  private int _state = STATE_READY;
+  /** Number of times to execute (default = 1) */
+  private int _iterations = 1;
+  /** Time to wait between iterations (in milliseconds, default = 0). Set to -1 to wait indefinetly */
+  private long _interval = 0;
+  /** <code>Date</code> to execute at. */
+  private Date _date = null;
 
-  private int _iterations = 1;	// NOTE!!! _iterations+_interval and _date are mutually exclusive
-  private long _interval = 0;		// time to wait, defaults to 0, which is: do not wait
-  private Date _date = null;		// date/time to run at.  to set: Date(int year, int month, int date)
-
-  // These members are related to the delay of WorkletJunction execution
+  /** <code>Timer</code> associated with keeping track of the delay between iterations. */
   private Timer _timer;
+  /** <code>TimerTask</code> associated with the <code>Timer</code> */
   private TimerTask _timerTask;
-  private boolean _timerTask_done;	// this variable used to check whether the Task has been canceled.
+  /** Checks whether the <code>TimerTask</code> has been canceled. */
+  private boolean _timerTask_done;
 
 
   // ------------------------------------------------------------------- //
   // ---------------------- CONTRUCTORS/INIT --------------------------- //
 
-  // private general ctor used by other public ctors
+  /**
+   * Private general constructor used by other public constructors
+   *
+   * @param iterations: number of times to execute
+   * @param interval: delay (in milliseconds) between iterations
+   * @param date: <code>Date</code> at which to execute
+   */
   private JunctionPlanner(int iterations, long interval, Date date){
     _iterations = iterations;
     _interval = interval;
     _date = date;
   }
 
+  /**
+   * Creates a JunctionPlanner to execute the given number of iterations
+   * at every interval
+   *
+   * @param iterations: number of times to execute
+   * @param interval: delay (in milliseconds) between iterations
+   */
   // Set the interval
   public JunctionPlanner(int iterations, long interval){
     this(iterations, interval, null);
   }
 
+  /**
+   * dp2041 Creates a JunctionPlanner to execute the given number of iterations
+   * at every <code>Date</code>
+   *
+   * @param iterations: number of times to execute
+   * @param date: <code>Date</code> at which to execute
+   */
   // Set the Date
-  public JunctionPlanner(Date date){ 
-    this(1, 0, date);  
+  public JunctionPlanner(Date date){
+    this(1, 0, date);
   }
 
-  // !!! This function must be called before the JunctionPlanner can be used.
+  /**
+   * Initialize the JunctionPlanner by giving it a reference to the
+   * corresponding {@link WorkletJunction}
+   *
+   * @param parent: reference to the {@link WorkletJunction} associated
+   */
   void init(WorkletJunction parent) {
 
     if (_parent == null){
@@ -94,10 +141,10 @@ public class JunctionPlanner implements Serializable{
   // ------------------------------------------------------------------- //
 
 
-
-  
-  // Start up the Junction Planner.  This is the main method called
-  // by the WorkletJunction to use the JunctionPlanner.
+  /**
+   * Starts up the Junction Planner.  This is the main method called
+   * by the {@link WorkletJunction} to use the JunctionPlanner.
+   */
   synchronized void start(){
     if (_parent == null){
       WVM.err.println(" Error, Parent not set.  You must call ");
@@ -105,7 +152,7 @@ public class JunctionPlanner implements Serializable{
 
     } else {
       _timer = new Timer();
-      
+
       while (_iterations != 0) {
         if (_interval != 0 || _date != null){
           _wait();
@@ -127,8 +174,10 @@ public class JunctionPlanner implements Serializable{
   }
 
 
-  // void _wait()
-  // my wait function that keeps track of the state of the planner, etc.
+  /**
+   * My implementation of a wait function that also keeps track of the
+   * state of the {@link WorkletJunction}
+   */
   synchronized private void _wait(){
 
     _timerTask = new TimerTask(){
@@ -136,14 +185,14 @@ public class JunctionPlanner implements Serializable{
       wakeUp();
       }};
     _timerTask_done = false;
-    
-    if (_interval > 0) 
+
+    if (_interval > 0)
       _timer.schedule(_timerTask, _interval);
 
     else if (_date != null)
       _timer.schedule(_timerTask, _date);
 
-    synchronized (this) 
+    synchronized (this)
     {
       try {
         if (_interval > 0 || _date != null){
@@ -166,9 +215,6 @@ public class JunctionPlanner implements Serializable{
 
 
 
-
-
-
   // ------------------------------------------------------------------------- //
   // ------------------------- AUXILLIARY FUNCTIONS -------------------------- //
   // ------------------------------------------------------------------------- //
@@ -176,11 +222,16 @@ public class JunctionPlanner implements Serializable{
   // JunctionPlanner
   // ------------------------------------------------------------------------- //
 
+  /**
+   * Wakup a JunctionPlanner in the waiting state
+   * (<code>STATE_WAITING</code> or <code>STATE_WAIT_INDEF</code>)
+   */
   synchronized void wakeUp(){
     this.notify();
     _state = STATE_READY;
   }
 
+  /** Cancel a {@link WorkletJunction} from further execution */
   synchronized void cancel(){
     if (!_timerTask_done){
       _timerTask.cancel();
@@ -191,49 +242,90 @@ public class JunctionPlanner implements Serializable{
 
 
   // ------ Methods dealing with Iterations ------ //
+  /**
+   * Resets the number of iterations to execute
+   *
+   * @param i: new value of iterations
+   */
   synchronized void setIterations(int i){
     _iterations = i;
   }
 
+  /**
+   * Gets the current number of iterations left to execute
+   *
+   * @return current number of iterations left to execute
+   */
   synchronized int iterations(){
     return _iterations;
   }
 
-
   // ------ Methods dealing with the timing of the Junction execution ------ //
+  /**
+   * Resets the <code>Date</code> at which to execute
+   *
+   * @param date: new value <code>Date</code> at which to execute
+   */
   synchronized void setDate(Date date){
     if (_interval == 0)
       _date = date;
-    else 
+    else
       WVM.err.println("JunctionPlanner Error, you can only change the date setting for this planner");
   }
 
+  /**
+   * Gets the current <code>Date</code> at which to execute
+   *
+   * @return current <code>Date</code> at which to execute
+   */
   synchronized Date date(){
     return _date;
   }
 
+  /**
+   * Resets the interval value
+   *
+   * @param interval: new value of interval.
+   */
   synchronized void setInterval(long interval){
     if (_date == null)
       _interval = interval;
-    else 
+    else
       WVM.err.println("JunctionPlanner Error, you can only change the interval setting for this planner");
   }
 
+  /**
+   * Gets the current interval value
+   *
+   * @return current interval value
+   */
   synchronized long interval(){
     return _interval;
   }
 
-
-  // ------ Methods dealing with the state of the Junction ------ //
+  /**
+   * Sets the state of the WorkletJunction
+   *
+   * @param state
+   */
   synchronized void setState(int state){
     _state = state;
   }
 
+  /**
+   * return the current state of the {@link WorkletJunction}
+   *
+   * @return current state of the {@link WorkletJunction}
+   */
   synchronized int state(){
     return _state;
   }
 
-  // return the string meaning of the state.
+  /**
+   * Gets the string meaning of the state
+   *
+   * @return string meaning of the state
+   */
   String sstate() {
     String msg = "";
     if (_state == STATE_READY)

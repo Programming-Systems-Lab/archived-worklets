@@ -1,48 +1,57 @@
-package psl.worklets;
-
-/* CVS version control block - do not edit manually
+/*
+ * @(#)WVM_RMI_Transporter.java
+ *
+ * Copyright (c) 2001: The Trustees of Columbia University in the City of New York.  All Rights Reserved
+ *
+ * Copyright (c) 2001: @author Gaurav S. Kc
+ * Last modified by: Dan Phung (dp2041@cs.columbia.edu)
+ *
+ * CVS version control block - do not edit manually
  *  $RCSfile$
  *  $Revision$
  *  $Date$
  *  $Source$
  */
 
-/**
- * Copyright (c) 2001: The Trustees of Columbia University in the City of New York.  All Rights Reserved
- * 
- * Copyright (c) 2001: @author Gaurav S. Kc
- * 
-*/
+package psl.worklets;
 
 import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.security.*;
-
 import java.rmi.*;
 import java.rmi.server.*;
 import java.rmi.registry.*;
 
+/**
+ * Communication layer that handles the RMI (Remote Method Invocation)
+ * related requests
+ */
 class WVM_RMI_Transporter extends WVM_Transporter{
-  
-  /** RMI Transportation Unit: the actual object that registers with the rmiRegistry */
-  private RTU rtu;
 
-  /** flag to denote whether the rmi transportation layer is active or not */
+  /** RMI Transportation Unit: RMI server that registers with the {@link WVM_Registry} */
+  private RTU rtu;
+  /** object that mediates the binding/registration of the RMI server with the {@link WVM_Registry} */
+  private RTU_RegistrarImpl rtuRegistrar;
+
+  /** flag to denote whether the RMI transportation layer is active or not */
   private boolean rmiService;
 
-  /** the locally-hosted rmiRegistry */
+  /** the locally-hosted {@link WVM_Registry} */
   private WVM_Registry rmiRegistry;
 
-  /** flag to denote whether the rmiRegistry is locally hosted */
+  /** flag to denote whether the {@link WVM_Registry} is locally hosted */
   private boolean registryService;
 
+  /** port on which to create the {@link WVM_Registry} */
   int _port = -1;
-  private RTU_RegistrarImpl rtuRegistrar;
+
+  /** identification used when binding RMI server to the registry */
   private String rmibind;
+  /** Date of creation */
   private Date creation;
 
-  /** reference to the host Worklet Virtual Machine */
+  /** reference to the host {@link WVM} */
   private WVM _wvm;
 
   /**
@@ -52,20 +61,23 @@ class WVM_RMI_Transporter extends WVM_Transporter{
     this(wvm, host, name, WVM_Host.PORT);
   }
 
+  /**
+   * Creates a plain RMI communication layer for the host WVM
+   */
   WVM_RMI_Transporter(WVM wvm, String host, String name, int port) {
     this(wvm, host, name, port, null, null, null, null, null, null, 0);
   }
 
   /**
-   * Create the RMI transporter layer for the host WVM
+   * Creates the RMI transporter layer for the host WVM
    */
   WVM_RMI_Transporter(WVM wvm, String host, String name, int port,
                       String keysfile, String password, String ctx, String kmf, String ks, String rng,
                       int securityLevel) {
-    
+
     // start the basic sockets transporter layer
     super(wvm, host, name, port+1, keysfile, password, ctx, kmf, ks, rng, securityLevel);
-    creation = new Date();    
+    creation = new Date();
     _port = port;
     rmibind = "rmi://" + _host + ":" + _port + "/" + _name;
 
@@ -86,7 +98,7 @@ class WVM_RMI_Transporter extends WVM_Transporter{
       try { RMISocketFactory.setSocketFactory((RMISocketFactory) _WVM_sf); }
       catch (IOException e) { WVM.err.println("Caught IOException in trying to setSocketFactory: " + e); }
     }
-    
+
     setupRegistry();
 
     try {
@@ -94,12 +106,12 @@ class WVM_RMI_Transporter extends WVM_Transporter{
     } catch (RemoteException e){
       WVM.err.println("Error creating RTU Registrar: " + e);
     }
-    
+
     setupRMI();
   }
 
   /**
-   * Attempt to create and host the RMI Registry locally
+   * Attempt to create and host the RMI {@link WVM_Registry} locally
    */
   void setupRegistry() {
     // Create RMI Registry
@@ -116,11 +128,11 @@ class WVM_RMI_Transporter extends WVM_Transporter{
   }
 
   /**
-   * Register the host WVM with the rmiRegistry
+   * Creates the {@link RTU}, which is the RMI server
    */
   void setupRMI() {
     // Setup RMI registration
-    final int RMI_RETRIES = 2; 
+    final int RMI_RETRIES = 2;
     int rmiRegistrationCount = 0;
     while (rmiRegistrationCount++ < RMI_RETRIES) {
       try {
@@ -145,7 +157,7 @@ class WVM_RMI_Transporter extends WVM_Transporter{
   }
 
   /**
-   * shutting down the WVM's rmi-transporter layer
+   * shutting down the {@link WVM}'s RMI-transporter layer
    */
   void shutdown() {
     // shut down communications
@@ -157,17 +169,17 @@ class WVM_RMI_Transporter extends WVM_Transporter{
       String nextRegistry = null;
       Map oriRegKeymap = rmiRegistry.getRegistrationKeys();
       HashMap regKeymap = new HashMap(oriRegKeymap);
-      
-      // this while loop does two functions. 
-      // 1) contact that other servers and tell them to rejoin 
+
+      // this while loop does two functions.
+      // 1) contact that other servers and tell them to rejoin
       //    the registry in a little while.
-      // 2) try to find the oldest RMI server out there 
-      //    to have it recreate the registry.  
+      // 2) try to find the oldest RMI server out there
+      //    to have it recreate the registry.
       Set rkeys = regKeymap.keySet();
       Iterator itr = rkeys.iterator();
 
       while (itr.hasNext()) {
-	String wvmUrl = (String) itr.next();	
+	String wvmUrl = (String) itr.next();
 	String regkey = (String) regKeymap.get(wvmUrl);
 	WVM.out.println("  Broadcasting to: " + wvmUrl);
 	Date tmpDate = (Date) getMessage(REJOIN_REGISTRY_REQUEST+regkey, wvmUrl);
@@ -185,7 +197,7 @@ class WVM_RMI_Transporter extends WVM_Transporter{
       rmiRegistry = null;
       registryService = false;
     }
-      
+
     super.shutdown();
   }
 
@@ -203,10 +215,7 @@ class WVM_RMI_Transporter extends WVM_Transporter{
     return null;
   }
 
-  /**
-   * alternate way of getting the RMI_Transporter to start the
-   * registry
-   */
+  /** alternate way of getting the RMI_Transporter to start the registry */
   void createRegistry(String key) {
     try {
       if (key.equals(rtuRegistrar.getRegistrationKey())) rtu.createRegistry();
@@ -217,9 +226,16 @@ class WVM_RMI_Transporter extends WVM_Transporter{
   }
 
   /**
-   * send a worklet via rmi-transportation
-   * @param wkl: worklet to send
-   * @param wj: junction that determines the destination
+   * Sends the {@link Worklet} to the {@link WVM}.  This
+   * function is a wrapper for <code>sendRMI</code> and
+   * <code>sendSocket</code> that collects the information from the
+   * {@link WorkletJunction} to pass on the transport method
+   * preferences
+   *
+   * @param wkl: {@link Worklet} to send
+   * @param wj: current {@link WorkletJunction} holding
+   * next addressing info
+   * @return success of the send
    */
   boolean sendWorklet(Worklet wkl, WorkletJunction wj) {
     String[] methods = wj.getTransportMethods();
@@ -264,6 +280,13 @@ class WVM_RMI_Transporter extends WVM_Transporter{
     return success;
   }
 
+  /**
+   * Sends a worklet via RMI transportation
+   *
+   * @param wkl: {@link Worklet} to send
+   * @param wj: {@link WorkletJunction} containing addressing information
+   * @param secure: security of the {@link WorkletJunction} being sent
+   */
   private boolean sendRMI(Worklet wkl, WorkletJunction wj, boolean secure){
     // WVM.out.println("  --  Sending worklet thru RMI");
     String rmiDestination = "//" + wj._host + ":" + wj._rmiport + "/" + wj._name;
@@ -272,7 +295,7 @@ class WVM_RMI_Transporter extends WVM_Transporter{
     try {
       WVM_Host wvmHost = null;
       Registry reg = null;
-      
+
       if (secure)
 	reg = LocateRegistry.getRegistry(wj._host, wj._rmiport, _WVM_sf);
       else
@@ -280,7 +303,7 @@ class WVM_RMI_Transporter extends WVM_Transporter{
 
       wvmHost = (WVM_Host)reg.lookup(wj._name);
 
-      // TODO: set up the BAG-MULTISET in the ClassFileServer so that the 
+      // TODO: set up the BAG-MULTISET in the ClassFileServer so that the
       // incoming BytecodeRetrieverWJ can get the data it needs
       wvmHost.receiveWorklet(wkl);
       return true;
@@ -294,52 +317,60 @@ class WVM_RMI_Transporter extends WVM_Transporter{
     return false;
   }
 
+  /** @return local address */
   public String toString() {
-    if (rmiService) return (_name + " @ " + _host + " : " + super._port);
+    if (rmiService) return (_name + " @ " + _host + " : " + _port);
     return (" @ " + _host + " : " + super._port);
   }
 
-  /**
-   * parses a url used for representing a WVM's addressing information
-   */
+  /** {@link WVM} addressing information */
   private class WVM_Address {
-    final String host;     /** ip address / hostName for WVM */
-    final String name;     /** rmi-registration name for the WVM */
-    final int port;        /** port that the WVM is listening on for its TCP communication layer */
+    /** ip address/hostName for {@link WVM} */
+    final String host;
+    /** rmi-registration name for the {@link WVM} */
+    final String name;
+    /** port that the {@link WVM} is listening on for its TCP communication layer */
+    final int port;
+
+    /** Creates address structure */
     WVM_Address(String rh, String rn, int rp) {
       host = rh; name = rn; port = rp;
     }
   }
-    
+
   /**
-   * parse out the different addressing fields for representing
-   * the a WVM's location
-   * @param wvmURL: a url that represents a wvm location
-   * WVM_URLs: rhost@rName:rPort
+   * Parses out the different addressing fields for representing
+   * a {@link WVM}'s location
+   *
+   * @param wvmURL: a <code>URL</code> that represents a
+   * {@link WVM}'s location in the form of :
+   * remote_hostname@RMI_name:remote_port where the RMI_name is
+   * optional.
+   * @return structure holding parsed address
    */
   private WVM_Address parseWVM_URL(String wvmURL) {
     StringTokenizer st = new StringTokenizer(wvmURL, "@: ", true);
     // returns the delimiter characters as tokens as well
-     
+
     String rHost = "";
     String rName = "";
     int rPort = 0;
-    
+
     boolean found_AT = false;
     boolean found_COLON = false;
-    
+
     while (st.hasMoreTokens()) {
       String token = st.nextToken();
       if (token.equals(":")) {
         found_COLON = true;
         continue;
       }
-      
+
       if (token.equals("@")) {
         found_AT = true;
         continue;
       }
-      
+
       if (found_COLON) {
         rPort = Integer.parseInt(token);
       } else if (found_AT) {
@@ -352,6 +383,15 @@ class WVM_RMI_Transporter extends WVM_Transporter{
   }
 
   // Client-side //////////////////////////////////////////////////////////////
+  /**
+   * Client side: Pings a remote {@link WVM}
+   *
+   * @param wvmURL: a <code>URL</code> that represents a
+   * {@link WVM} location in the form of :
+   * remote_hostname@RMI_name:remote_port where the RMI_name is
+   * optional
+   * @return success of ping
+   */
   protected boolean ping(String wvmURL) {
     WVM_Address wa = parseWVM_URL(wvmURL);
     String rHost = wa.host;
@@ -360,6 +400,18 @@ class WVM_RMI_Transporter extends WVM_Transporter{
     return ((rmiService && rtu.ping(rHost, rName)) || ping(rHost, rPort));
   }
 
+  /**
+   * Client side: Sends a message to a remote {@link WVM}
+   *
+   * @param messageKey: type of message that you are sending, defined
+   * in {@link WVM_Transporter}
+   * @param message: actual message to send
+   * @param wvmURL: a <code>URL</code> that represents a
+   * {@link WVM} location in the form of :
+   * remote_hostname@RMI_name:remote_port where the RMI_name is
+   * optional
+   * @return success of the send attempt
+   */
   protected boolean sendMessage(Object messageKey, Object message, String wvmURL) {
     WVM_Address wa = parseWVM_URL(wvmURL);
     String rHost = wa.host;
@@ -368,6 +420,17 @@ class WVM_RMI_Transporter extends WVM_Transporter{
     return ((rmiService && rtu.sendMessage(messageKey, message, rHost, rName)) ||
       sendMessage(messageKey, message, rHost, rPort));
   }
+  /**
+   * Client side: Requests to get a message from the remote {@link WVM}
+   *
+   * @param messageKey: type of message being requested, defined
+   * in {@link WVM_Transporter}
+   * @param wvmURL: a <code>URL</code> that represents a
+   * {@link WVM} location in the form of :
+   * remote_hostname@RMI_name:remote_port where the RMI_name is
+   * optional.
+   * @return message that was received
+   */
   protected Object getMessage(Object messageKey, String wvmURL) {
     WVM_Address wa = parseWVM_URL(wvmURL);
     String rHost = wa.host;
@@ -380,13 +443,21 @@ class WVM_RMI_Transporter extends WVM_Transporter{
   // END: Client-side /////////////////////////////////////////////////////////
 
   /**
-   * RMI Transportation Unit: the actual object that registers with the rmiRegistry
+   * RMI Transportation Unit: RMI server that registers with the {@link WVM_Registry}
    */
   class RTU extends UnicastRemoteObject implements WVM_Host {
+    /** Creates a plain RMI server */
     RTU() throws RemoteException {
       this(null, null);
     }
 
+    /**
+     * Creates an RMI server with the specified RMI socket factories
+     *
+     * @param csf: <code>RMISocketFactory</code> used for client sockets
+     * @param ssf: <code>RMISocketFactory</code> used for server sockets
+     * @throws RemoteException if the RTU could not be created
+     */
     RTU(RMIClientSocketFactory csf, RMIServerSocketFactory ssf ) throws RemoteException {
       super(0, csf, ssf);
 
@@ -411,7 +482,7 @@ class WVM_RMI_Transporter extends WVM_Transporter{
             WVM.out.println("  RMI Listener: " + rmibind);
             return;
           } catch (Exception rebind_e){
-            WVM.err.println("Shutting down: " + rebind_e); 
+            WVM.err.println("Shutting down: " + rebind_e);
           }
         }
       } catch (java.rmi.ConnectException e) {
@@ -425,20 +496,23 @@ class WVM_RMI_Transporter extends WVM_Transporter{
       }
 
       rmiService = false;
-      shutdown();        
+      shutdown();
       throw (new RemoteException());
     }
-    
+
+    /**
+     * Sets the URLs pertaining to the location of class servers
+     */
     private void setCodebase() {
       URL codebaseURL = null;
       String rmiCodebase = null;
       String codebase = "";
 
       if (_securityLevel > WVM.NO_SECURITY)
-	codebase += " https://" + _host + ":" + _sslwebPort + "/"; 
+	codebase += " https://" + _host + ":" + _sslwebPort + "/";
 
       if (_securityLevel < WVM.HIGH_SECURITY)
-        codebase += " http://" + _host + ":" + _webPort + "/"; 
+        codebase += " http://" + _host + ":" + _webPort + "/";
 
       try {
         codebaseURL = new URL (codebase); // just to check whether it is malformed
@@ -451,10 +525,10 @@ class WVM_RMI_Transporter extends WVM_Transporter{
         }
         WVM.out.println ("  setting RMI codebase to: " + rmiCodebase);
         props.setProperty ("java.rmi.server.codebase", rmiCodebase);
-        
+
       } catch (MalformedURLException e) {
         e.printStackTrace();
-        // WVM.out.println ("serving class URL for this WVM is invalid: " + codebaseURL);  
+        // WVM.out.println ("serving class URL for this WVM is invalid: " + codebaseURL);
         if (_securityLevel < WVM.HIGH_SECURITY) {
           _webserver.shutdown();
           _webserver = null;
@@ -468,6 +542,7 @@ class WVM_RMI_Transporter extends WVM_Transporter{
       }
     }
 
+    /** Shuts down the RTU by Unbinding from the {@link WVM_Registry} */
     void shutdown() {
       try {
         _wvm = null;
@@ -481,18 +556,29 @@ class WVM_RMI_Transporter extends WVM_Transporter{
         WVM.out.println("Shut down the RMI transporter layer for the WVM");
       }
     }
-      
+
+    /**
+     * Receives and installs a {@link Worklet}
+     *
+     * @param wkl: {@link Worklet} to receive
+     * @throws RemoteException if {@link Worklet} could not be received
+     */
     public void receiveWorklet(Worklet wkl) throws RemoteException {
       // TODO: Okay, now that the LEAST REQUIRED SET (LRS) of class bytecode
       // has been downloaded from the source WVM, send out a BytecodeRetrieverWJ
       // to get the relevant classes, viz. all those classes that the source
       // HTTP server served up to this WVM
 
-      // adding to WVM's in-tray, and don't need to send out BytecodeRetrieval worklet
-      wkl.retrieveBytecode = false;
+      // adding to WVM's in-tray
       _wvm.installWorklet(wkl);
     }
 
+    /**
+     * Attemps to rejoin the {@link WVM_Registry}
+     *
+     * @throws RemoteException if RTU could not rejoin the {@link WVM_Registry}
+     * @return Date of WVM_RMI_Transporter layer creation
+     */
     public Date rejoinRegistry() throws RemoteException {
       WVM.out.println("asked to rejoin rmiregistry");
       if (rmiService) rtu.shutdown();
@@ -513,6 +599,11 @@ class WVM_RMI_Transporter extends WVM_Transporter{
       return (creation);
     }
 
+    /**
+     * Creates a new {@link WVM_Registry}
+     *
+     * @throws RemoteException if {@link WVM_Registry} could not be created
+     */
     public void createRegistry() throws RemoteException {
       Thread t = new Thread() {
         public void run() {
@@ -528,8 +619,15 @@ class WVM_RMI_Transporter extends WVM_Transporter{
       };
       t.start();
     }
-    
+
     // Client-side ////////////////////////////////////////////////////////////
+    /**
+     * Client side: Pings an RMI server on the same registry
+     *
+     * @param rHost: hostname to ping
+     * @param rName: name of the RMI server
+     * @return success of ping
+     */
     boolean ping(String rHost, String rName) {
       try {
         // WVM.out.println("  --  pinging peer WVM thru RMI: " + rName + "@" + rHost);
@@ -545,6 +643,17 @@ class WVM_RMI_Transporter extends WVM_Transporter{
       }
       return false;
     }
+
+    /**
+     * Client side: Sends a message to an RMI server on the same registry
+     *
+     * @param messageKey: type of message that you are sending, defined
+     * in {@link WVM_Transporter}
+     * @param message: actual message to send
+     * @param rHost: hostname to ping
+     * @param rName: name of the RMI server
+     * @return success of the send attempt
+     */
     boolean sendMessage(Object messageKey, Object message, String rHost, String rName) {
       try {
         // WVM.out.println("  --  sending a message to a peer WVM thru RMI: " + rName + "@" + rHost);
@@ -560,6 +669,16 @@ class WVM_RMI_Transporter extends WVM_Transporter{
       }
       return false;
     }
+
+    /**
+     * Client side: Requests to get a message from an RMI server on the same registry
+     *
+     * @param messageKey: type of message that you are sending, defined
+     * in {@link WVM_Transporter}
+     * @param rHost: hostname to ping
+     * @param rName: name of the RMI server
+     * @return message that was received
+     */
     Object getMessage(Object messageKey, String rHost, String rName) {
       try {
         // WVM.out.println("  --  getting a message from a peer WVM thru RMI: " + rName + "@" + rHost);
@@ -578,26 +697,56 @@ class WVM_RMI_Transporter extends WVM_Transporter{
     // END: Client-side ///////////////////////////////////////////////////////
 
     // Server-side ////////////////////////////////////////////////////////////
+    /**
+     * If this method was invoked, then we're alive and the client ping is succesful
+     * @return true
+     * @throws RemoteException if ping was not possible
+     */
     public boolean ping() throws RemoteException {
       // WVM.out.println("  --  being PINGED thru RMI");
       return true;
     }
+
+    /**
+     * Server side: Receives and handles the messages
+     *
+     * @param messageKey: Type of message that is being received, defined
+     * in {@link WVM_Transporter}.
+     * @param message: actual message being received
+     * @return success of message reception
+     * @throws RemoteException if there was a problem with receiving the message
+     */
     public boolean receiveMessage(Object messageKey, Object message) throws RemoteException {
       // WVM.out.println("  --  received a message thru RMI");
       return _wvm.receiveMessage(messageKey, message);
     }
+
+  /**
+   * Server side: Handles message requests from clients
+   *
+   * @param messageKey: type of message being requested, defined
+   * in {@link WVM_Transporter}
+   * @return message that was received earlier of type <code>messageKey</code>
+   * @throws RemoteException if there was a problem with the message request
+   */
     public Object requestMessage(Object messageKey) throws RemoteException {
       // WVM.out.println("  --  received a message request thru RMI");
       return _wvm.requestMessage(messageKey);
     }
-    // END: Server-side ///////////////////////////////////////////////////////
 
+    /**
+     * Checks to see security of the WVM_RMI_Transporter
+     *
+     * @return true if WVM_RMI_Transporter is secure
+     * @throws RemoteException if the security could not be checked
+     */
     public boolean isSecure() throws RemoteException{
       if (_securityLevel > WVM.NO_SECURITY)
         return true;
-      else 
+      else
         return false;
     }
+    // END: Server-side ///////////////////////////////////////////////////////
   } // END: class RTU
 
   /**
@@ -615,78 +764,64 @@ class WVM_RMI_Transporter extends WVM_Transporter{
    * Create Class Loader                   YES              NO
    * System Properties Access              YES              NO
    * Connections                           YES              NO
-   * File Read                                 Limited            NO
+   * File Read                           Limited            NO
    *
    */
-  
-  
   public class WVM_RMISecurityManager extends RMISecurityManager {
-    
+
     private Set readableFiles = Collections.synchronizedSet(new HashSet());
-    
+
+    /** Loaded classes are allowed to read a Collection of files */
     public void addReadableFiles (Collection c) {
       readableFiles.addAll(c);
       // WVM.out.println ("**** ReadableFiles size " + readableFiles.size() + " ****");
     }
-    
+
+    /** Loaded classes are allowed to read a filePath of files */
     public void addReadableFile (String filePath) {
       readableFiles.add(filePath);
       // WVM.out.println ("**** ReadableFiles size " + readableFiles.size() + " ****");
     }
-    
+
+    /** Removes Collection of files previously allowed for loaded classes to read */
     public void removeReadableFiles (Collection c) {
       readableFiles.removeAll(c);
     }
-    
+
+    /** Removes filePath of files previously allowed for loaded classes to read */
     public void removeReadableFile (String filePath) {
       readableFiles.remove(filePath);
     }
-    
-    /**
-     * Loaded classes are allowed to create class loaders.
-     */
+
+    /** Loaded classes are allowed to create class loaders. */
     public synchronized void checkCreateClassLoader() { }
-    
-    /**
-     * Connections to other machines are allowed
-     */
+
+    /** Connections to other machines are allowed */
     public synchronized void checkConnect(String host, int port) { }
-  
-    /**
-     * Connections to other machines are allowed
-     */
+
+    /** Connections to other machines are allowed */
     public synchronized void checkConnect(String host, int port, Object context) { }
-    
-    /**
-     * Connections to other machines are allowed
-     */
+
+    /** Connections to other machines are allowed */
     public synchronized void checkListen(int port) { }
-    
-    /**
-     * Connections from other machines are allowed
-     */
+
+    /** Connections from other machines are allowed */
     public synchronized void checkAccept(String host, int port) { }
-    
-    /**
-     * Loaded classes are allowed to manipulate threads.
-     */
+
+    /** Loaded classes are allowed to manipulate threads. */
     public synchronized void checkAccess(Thread t) { }
-    
-    /**
-     * Loaded classes are allowed to manipulate thread groups.
-     */
+
+    /** Loaded classes are allowed to manipulate thread groups. */
     public synchronized void checkAccess(ThreadGroup g) { }
-    
-    /**
-     * Loaded classes are allowed to access the system properties list.
-     */
+
+    /** Loaded classes are allowed to access the system properties list. */
     public synchronized void checkPropertiesAccess() { }
-    
-    /**
-     * Loaded classes are allowed to access s.
-     */
+
+    /** Loaded classes are allowed to access */
     public synchronized void checkPropertyAccess(String key) { }
+    /** Check that loaded classes are allowed read this file */
     public synchronized void checkRead(String aFile)  { }
+    /** Check that loaded classes have this permission */
     public synchronized void checkPermission(Permission perm)   {
       try {
         Class sockPerm = Class.forName("java.net.SocketPermission");
@@ -696,6 +831,7 @@ class WVM_RMI_Transporter extends WVM_Transporter{
         }
       } catch (ClassNotFoundException e) { }
     }
+    /** Check that loaded classes have Socket permission */
     private synchronized void checkSocketPermission (SocketPermission perm) { }
 
   } // END: class WVM_RMISecurityManager
