@@ -1,0 +1,371 @@
+<html>
+<head>
+<title>Worklets Documentation</title>
+</head>
+
+<body>
+<font color='#000080' size=2 face='Verdana, Arial, Helvetica'>
+
+<!-- Header of page --> 
+<font color='#000080' size=4 face='Verdana, Arial, Helvetica'>
+<center>
+<h4>
+Programming Systems Laboratory<br>
+Worklets Documentation
+</h4>
+</center>
+</font>
+<!-- End Header of page --> 
+<br>
+
+
+<h3>Description</h3>
+The Worklets system provides micro-workflow through mobile agents that
+adapt computation to component context.  It is designed as a mobile
+code infrastructure intended for dynamic re-configuration of
+third-party systems.  Instead of bringing down entire components of a
+distributed system at runtime for recompilation, Worklets carrying
+Java mobile code can be injected transparently into system components
+for incremental adaptation.  Host components must include, or be
+wrapped with, a generic Worklet Virtual Machine (WVM) and
+host-specific adapters exposing indigenous reconfiguration
+capabilities.  The Worklets System depends on Java 1.4.
+
+<p>
+The system is principally composed of WVM's, Worklets and
+WorkletJunctions.  The WVM provides the execution environment as well
+as harboring the interface to the system.  A Worklet is composed of
+WorkletJunctions which contain the execution code and addressing
+information for the Worklet.  The Worklet thus acts as an agent
+bringing the WorkletJunction to the WVM to perform actions which are
+specified in the WorkletJunction.
+</p>
+
+<p>
+The typical use of Worklets is to insert WorkletJunctions into a
+Worklet and send it into a system running a WVM to monitor the system
+by probing or to effect it by modifying system components.  A
+JunctionPlanner can also be added to WorkletJunctions to specify
+meta-data such as the number of iterations to execute.  Examples of
+these Worklets are included in the distribution and a walk through of
+a simple system is provided at the <a target=#walkthrough>end</a> of
+the documentation.
+</p>
+
+<h3>Usage</h3>
+
+For Worklets to act on a target system the WVM must be "installed"
+into the system.  The WVM provides the execution environment in which
+the Worklets operate.  To install the WVM you need to create a WVM and
+pass it a reference to the system to be instrumented: <br>
+
+<p>
+<font size=2 face='Terminal, Arial'>
+WVM _wvm = new WVM(this);
+</font>
+</p>
+
+<p>
+This constructor defaults many values which can be specified through
+other constructors (please see the <a href=./index.html>Worklets'
+Javadocs</a>).  In the code above, <font size=2 face='Terminal,
+Arial'>this</font> is a reference to the system.  The Worklets system
+uses this reference to invoke methods provided through a host adaptor
+interface (please see the <a href=#examples>examples<a> section
+below).
+</p>
+
+<p>
+After the WVM has been installed, Worklets can be sent in to do a
+variety of tasks such as invoking interface methods or executing other
+bits of code.  Since the Workets are transported between WVMs, a
+Worklet must be bootstrapped into the Worklets system by an
+originating WVM.  This can be done by creating a WVM on the
+originating system and installing and deploying the Worklet from that
+WVM.
+</p>
+
+<font size=2 face='Terminal, Arial'>
+WVM wvm = new WVM(new Object(), InetAddress.getLocalHost().getHostAddress(), "newWVM");<br>
+Worklet wkl = new Worklet(null);	// create a Worklet<br>
+wkl.deployWorklet(wvm);			// send it away!<br>
+</font>
+
+<p>
+Worklets themselves are composed of WorkletJunctions which contain the
+execution points.  Each WorkletJunction has an execute method that is
+invoked when the Worklet reaches the destination specified in the
+WorkletJunction.  Thus one Worklet can act on several systems,
+provided the WVM is installed.  Also, the Worklet can be communicated
+(between WVMs) through different methods, namely sockets or Java RMI.
+Additionally, there are ways to secure Worklet transportation, as
+described in the <a href="security.html">security</a> section.
+</p>
+
+<p>
+Here is a basic Worklet construction with one WorkletJunction that is
+bootstraped with a WVM: <br>
+
+<font size=2 face='Terminal, Arial'>
+<br>
+import psl.worklets.*;<br>
+<br>
+public class DispatchWorklet implements Serializable {<br>
+  // create an originating WVM<br>
+  WVM wvm = new WVM(new Object(), "localhost", "DispatchWorklet");<br>
+<br>
+  WorkletJunction originJunction = null; <br>
+  WorkletJunction wj = new WorkletJunction("localhost", "target") {<br>
+    public void init(Object _system, WVM _wvm) {<br>
+    }<br>
+<br>
+    public void execute() {<br>
+      System.out.println("Hello System");<br>
+    }<br>
+  };<br>
+<br>
+  Worklet wkl = new Worklet(originJunction);<br>
+  wkl.addJunction(wj);<br>
+  wkl.deployWorklet(wvm);<br>
+  System.exit(0);<br>
+}
+</font>
+<p>
+
+<p>
+The code above creates a WorkletJunction to be sent to a local system
+under the name of "target".  Once it gets there, the WorkletJunction
+will simply print out "Hello System".  The <font size=2
+face='Terminal, Arial'> originJunction</font> used above specifies
+where the Worklet is to return to when finished with all of its
+WorkletJunctions.  If <font size=2 face='Terminal, Arial'>null</font>
+is specified, as above, then it doesn't have to return.  <br>
+<br>
+As the range of Worklet applications vary widely, we provide an <a
+href=#examples>example<a> of Worklets being used to probe a system and
+then again to effect it. Also, please see the <a href=./index.html>
+Worklets' Javadocs</a> for API information.
+</p>
+
+<p>
+<h3><a name="examples">Examples</a></h3>
+In this example a simple system is created, instrumented, probed, and effected.
+</p>
+
+<h4>Example system: Greeter</h4>
+
+The example shown here is a simple system where two entities 
+communicate continuously through a given protocol.
+<a href=examples/Greeter.java>Greeter.java</a> provides the interface for
+all Greeters and <a href=examples/politeGreeter.java>politeGreeter.java</a>  
+implements the Greeter.  The polite Greeters simply exchange greetings back and 
+forth while being prompted by a preset greeting.  To start the Greeter system, 
+compile the politeGreeter.java and run, on one terminal: <br>
+
+<font  size=2 face='Terminal, Arial'>
+java politeGreeter localhost 9200 wvm1 localhost 9221 true<br>
+</font>
+<br>
+
+and on another terminal run: <br>
+<font  size=2 face='Terminal, Arial'>
+java politeGreeter localhost 9201 wvm2 localhost 9220 true<br>
+</font>
+
+<p>
+The first and second arguments are the local hostname and socket
+number to try binding to.  The third argument is the WVM name.  The
+fourth and fifth arguments are the remote host and port number to
+communicate with.  The last (sixth) argument is whether to initially
+allow communciation and whether to try to initiate a conversation.
+When the first invocation above is executed, the other Greeter is not
+created yet, so nothing happens.  When the second Greeter is created
+it starts the conversation with the first Greeter.
+</p>
+
+<p>
+We "instrument" the system, or install the WVM, on the line: <br>
+<font size=2 face='Terminal,Arial'> WVM wvm = new WVM(this);<br> </font>
+by creating a WVM from within the politeGreeter and passing it a
+reference to the parent system.  By doing this, Worklets can interact
+with the system through the API (Greeter.java).
+</p>
+
+
+<h4>Probing the Greeter</h4>
+
+<p>
+Now we want to probe the system to see what's going on inside.  For
+DASADA related probing, it is important to conform to the 
+<a href=psl/probelets/Probeable.html>Probelet API</a>.  In the following
+example I do not implement this API, but in the <a href=#FAQ>FAQ</a> section
+I discuss the API as related to Worklets.
+<p>
+
+<p>
+The probe <a href=examples/probeGreeter.java>probeGreeter.java</a> is
+sent into the politeGreeter system to find out the greeting being used
+and whether they are currently talking.  Look at the Probelet class to
+see the interaction with the host system.  <br> (ie. the line: <font
+size=2 face='Terminal, Arial'> String greeting =
+((Greeter)_system).getGreeting(); </font>)
+</p>
+
+<p>
+To execute probeGreeter, run: <br>
+<br>
+<font size=2 face='Terminal, Arial'> 
+java probeGreeter localhost wvm1 9200</font>)
+</p>
+
+<h4>Effecting the Greeter</h4>
+
+<p>
+Now let's suppose the politeGreeter system wasn't working so great and that
+they weren't talking.
+</p>
+run, on one terminal: <br>
+
+<font  size=2 face='Terminal, Arial'>
+java politeGreeter localhost 9200 wvm1 localhost 9221 false<br>
+</font>
+<br>
+
+and on another terminal run: <br>
+<font  size=2 face='Terminal, Arial'>
+java politeGreeter localhost 9201 wvm2 localhost 9220 false<br>
+</font>
+
+<p>
+Now we'll send in an effector to remedy the system so that the
+Greeters are again talking to each other.  We do this in <a
+href=examples/effectGreeter.java>effectGreeter.java</a>.  In
+effectGreeter, we invoked the neccessary methods for the Greeters to
+talk to each other.  
+</p>
+
+<p>
+To execute effectGreeter, run: <br>
+<br>
+<font size=2 face='Terminal, Arial'> 
+java effectGreeter</font>
+</p>
+
+<p>
+In effectGreeter we hardcode in the destinations of the
+WorkletJunctions simply for convenience.  Notice that the probeGreeter
+and effectGreeter files are very much the same.  The only difference
+is in the methods invoked and, of course, the names of the classes
+(ie. Probelet vs. Effectlet).
+</p>
+
+<h4>Example Summary</h4>
+
+<p>
+In this example we showed a system being installed with the WVM.  We
+then showed the system being probed and effected.  Though this was a
+very simple example, it can be used to do further testing and learning
+of how Worklets can be used.  For example we can actually change the
+"protocol", or language, that the Greeters are using.  Also, we
+restricted ourselves to only invoking API methods but any execution
+code can be specified in the execute method (as allowed through
+security policy.)  Applications can be sent in for execution as well.
+These examples are included in the <a href="">Worklets
+distribution</a>.
+</p>
+
+<h3><a name="FAQ">Frequently Asked Questions (FAQ)</a></h3>
+
+<ul>
+
+<li><p>How can Worklets be used as DASADA probes?</p>
+
+<p>
+To confrom to the <a href=psl/probelets/Probeable.html>DASADA RTI</a>,
+the following methods must be provided:<br>
+<table border=0 cellpadding='5'>
+
+<tr><td><font color='#000080' size=2 face='Verdana, Arial,
+    Helvetica'>activate()</font></td> <td><font color='#000080' size=2
+    face='Verdana, Arial, Helvetica'> Worklets are automatically
+    active upon reception at WVM.  If it is inactive then the methods
+    provided through the WorkletJunction and JunctionPlanner enable a
+    user to activate the Worklet (WorkletJunction.)  </font></td></tr>
+
+<tr><td><font color='#000080' size=2 face='Verdana, Arial,
+    Helvetica'>deactivate()</font></td> <td><font color='#000080'
+    size=2 face='Verdana, Arial, Helvetica'> If the Worklet's
+    WorkletJunctions have associated JunctionPlanners then they can be
+    suspended using the provided methods.  </font></td></tr>
+
+<tr><td><font color='#000080' size=2 face='Verdana, Arial,
+    Helvetica'>deploy()</font></td> <td><font color='#000080' size=2
+    face='Verdana, Arial, Helvetica'> Worklets provide a deploy()
+    method.  </font></td></tr>
+
+<tr><td><font color='#000080' size=2 face='Verdana, Arial,
+    Helvetica'>undeploy()</font></td> <td><font color='#000080' size=2
+    face='Verdana, Arial, Helvetica'>The Worklet's WorkletJunctions
+    can be cancelled using the provided methods.</font></td></tr>
+
+<tr><td><font color='#000080' size=2 face='Verdana, Arial,
+    Helvetica'>install()</font></td> <td><font color='#000080' size=2
+    face='Verdana, Arial, Helvetica'>Worklets are automatically
+    installed into the WVM upon deployment and
+    transport.</font></td></tr>
+
+<tr><td><font color='#000080' size=2 face='Verdana, Arial,
+    Helvetica'>uninstall()</font></td> <td><font color='#000080'
+    size=2 face='Verdana, Arial, Helvetica'> Worklets can be
+    uninstalled by cancelling the current and remaining
+    WorkletJunctions.  A lookup function is provided through the local
+    WVM to find all the currently installed
+    WorketJunctions.</font></td></tr> </font>
+
+<tr><td><font color='#000080' size=2 face='Verdana, Arial,
+    Helvetica'>query_sensed()</font></td> <td><font color='#000080' size=2
+    face='Verdana, Arial, Helvetica'>This functionality must be
+    implemented explicitly.</font></td></tr>
+
+<tr><td><font color='#000080' size=2 face='Verdana, Arial,
+    Helvetica'>sensed()</font></td> <td><font color='#000080' size=2
+    face='Verdana, Arial, Helvetica'>This functionality must be
+    implemented explicitly.</font></td></tr>
+
+<tr><td><font color='#000080' size=2 face='Verdana, Arial,
+    Helvetica'>focus()</font></td> <td><font color='#000080' size=2
+    face='Verdana, Arial, Helvetica'>This functionality must be
+    implemented explicitly.</font></td></tr>
+</table> </li>
+
+<li>What about the Effector API?  One has not been developed yet.</a>
+
+<li>What about security?  See <a href=./security.html>Worklet Security</a>
+
+<li>Please email <a href="mailto:dp2041@cs.columbia.edu">me</a>
+with further questions.</li>
+
+</ul> <!--// End - FAQ //-->
+</p>
+
+<p>
+<h3>Errata</h3>
+Please email <a href="mailto:dp2041@cs.columbia.edu">me</a> for bug reports.
+</p>
+
+<h3>Questions, Contact</h3>
+<p>Any questions or comments can be directed to <a href="mailto:dp2041@cs.columbia.edu">Dan Phung</a>.
+</p>
+
+<!--Start Copyright-->
+<center>
+<font color='#000080' size=1 face='Verdana, Arial, Helvetica'>
+<hr size='1' width="400"/>
+Copyright © 2002: The Trustees of Columbia University in the City of New York.  All Rights Reserved<br>
+Author: <a href="mailto:dp2041@cs.columbia.edu">Dan Phung<a> <br>
+Last Modified 20 October 2002
+</center>
+<!--End Copyright-->
+
+</body>
+</html>
