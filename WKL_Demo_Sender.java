@@ -79,8 +79,15 @@ public class WKL_Demo_Sender extends JFrame implements Serializable {
   private void setupGUI() {
     JTabbedPane tabbedPane = new JTabbedPane();
     JPanel ctrlPanel, logPanel;
-    tabbedPane.addTab("", new ImageIcon("images/start.gif"), ctrlPanel = new JPanel(new BorderLayout()), "Control Panel");
-    tabbedPane.addTab("", new ImageIcon("images/logs.gif"), logPanel = new JPanel(new BorderLayout()), "Logs");
+    ImageIcon startIC = new ImageIcon("images/start.gif");
+    ImageIcon logsIC = new ImageIcon("images/logs.gif");
+    try {
+      ClassLoader cl = getClass().getClassLoader();
+      startIC = new ImageIcon((URL) cl.getSystemResources("psl/worklets/images/start.gif").nextElement());
+      logsIC = new ImageIcon((URL) cl.getSystemResources("psl/worklets/images/logs.gif").nextElement());
+    } catch (Exception e) { e.printStackTrace(); }
+    tabbedPane.addTab("", startIC, ctrlPanel = new JPanel(new BorderLayout()), "Control Panel");
+    tabbedPane.addTab("", logsIC, logPanel = new JPanel(new BorderLayout()), "Logs");
     tabbedPane.setBackground(bg);
     tabbedPane.setForeground(bg);
     mainPanel.add(tabbedPane);
@@ -357,7 +364,11 @@ class StartupDialog extends JDialog {
     p.add(msgPanel);
 
     // Top level image
-    JLabel topImgLabel = new JLabel(new ImageIcon("images/SD.gif"), SwingConstants.LEADING);
+    ImageIcon sdIC = new ImageIcon("images/SD.gif");
+    try {
+      sdIC = new ImageIcon((URL) getClass().getClassLoader().getSystemResources("psl/worklets/images/SD.gif").nextElement());
+    } catch (Exception e) { e.printStackTrace(); }
+    JLabel topImgLabel = new JLabel(sdIC, SwingConstants.LEADING);
     JLabel topTxtLabel = new JLabel("Dispatchin' dem worklets", SwingConstants.CENTER);
     topTxtLabel.setFont(new Font("Dialog", Font.BOLD, 12));
     topTxtLabel.setForeground(Color.lightGray);
