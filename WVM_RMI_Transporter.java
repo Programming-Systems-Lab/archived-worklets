@@ -73,6 +73,7 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         _wvm = super._wvm;
         return;
       } catch (RemoteException e) {
+        e.printStackTrace();
         try {
           Thread.currentThread().sleep(500);
         } catch (InterruptedException ie) { }
