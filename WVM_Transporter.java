@@ -113,7 +113,7 @@ class WVM_Transporter extends Thread {
         ois = new ObjectInputStream(s.getInputStream()) {
           protected Class resolveClass(ObjectStreamClass v) throws IOException, ClassNotFoundException {
             Class c = Class.forName(v.getName(), true, _loader);
-            // WVM.out.println("In custom ObjectInputStream, trying to resolve class: " + c);
+            WVM.out.println("In custom ObjectInputStream, trying to resolve class: " + c);
             return ( (c == null) ? super.resolveClass(v) : c );
           }
         };
@@ -128,7 +128,9 @@ class WVM_Transporter extends Thread {
         } else if (requestType.equals(SENDMSG_REQUEST)) {
           // ok, peer hostSystem @ WVM is attempting to send a message
           WVM.out.println(" -- received a message thru sockets");
-          _wvm.receiveMessage(ois.readObject());
+          Object messageKey = ois.readObject();
+          Object message = ois.readObject();
+          _wvm.receiveMessage(messageKey, message);
           oos.writeUTF(SENDMSG_RESPONSE); oos.flush();
           continue MAIN_LOOP;
         } else if (requestType.equals(GETMSG_REQUEST)) {
@@ -334,8 +336,8 @@ class WVM_Transporter extends Thread {
     WVM.out.println("SHOULD-BE-OVERRIDDEN! WVM_Transporter.ping(String)");
     return false;
   }
-  protected boolean sendMessage(Object message, String wvmURL) {
-    WVM.out.println("SHOULD-BE-OVERRIDDEN! WVM_Transporter.sendMessage(Object, String)");
+  protected boolean sendMessage(Object messageKey, Object message, String wvmURL) {
+    WVM.out.println("SHOULD-BE-OVERRIDDEN! WVM_Transporter.sendMessage(Object, Object, String)");
     return false;
   }
   protected Object getMessage(Object messageKey, String wvmURL) {
@@ -380,7 +382,7 @@ class WVM_Transporter extends Thread {
       return transmissionComplete;
     }
   }
-  final boolean sendMessage(Object message, String host, int port) {
+  final boolean sendMessage(Object messageKey, Object message, String host, int port) {
     // 2-do: really!
     boolean transmissionComplete = false;
     
@@ -395,6 +397,7 @@ class WVM_Transporter extends Thread {
       // Send request to the peer WVM
       oos = new ObjectOutputStream(s.getOutputStream());
       oos.writeUTF(SENDMSG_REQUEST);
+      oos.writeObject(messageKey);
       oos.writeObject(message);
       oos.flush();
 

@@ -208,13 +208,13 @@ class WVM_RMI_Transporter extends WVM_Transporter {
     return ((rmiService && rtu.ping(rHost, rName)) || ping(rHost, rPort));
   }
 
-  protected boolean sendMessage(Object message, String wvmURL) {
+  protected boolean sendMessage(Object messageKey, Object message, String wvmURL) {
     WVM_Address wa = parseWVM_URL(wvmURL);
     String rHost = wa.host;
     String rName = wa.name;
     int rPort = wa.port;
-    return ((rmiService && rtu.sendMessage(message, rHost, rName)) ||
-      sendMessage(message, rHost, rPort));
+    return ((rmiService && rtu.sendMessage(messageKey, message, rHost, rName)) ||
+      sendMessage(messageKey, message, rHost, rPort));
   }
   protected Object getMessage(Object messageKey, String wvmURL) {
     WVM_Address wa = parseWVM_URL(wvmURL);
@@ -374,10 +374,10 @@ class WVM_RMI_Transporter extends WVM_Transporter {
       }
       return false;
     }
-    boolean sendMessage(Object message, String rHost, String rName) {
+    boolean sendMessage(Object messageKey, Object message, String rHost, String rName) {
       try {
         WVM.out.println("  --  sending a message to a peer WVM thru RMI: " + rName + "@" + rHost);
-        return ((WVM_Host) Naming.lookup("//" + rHost + ":" + _port + "/" + rName)).receiveMessage(message);
+        return ((WVM_Host) Naming.lookup("//" + rHost + ":" + _port + "/" + rName)).receiveMessage(messageKey, message);
       } catch (NotBoundException e) {
         WVM.out.println("NotBoundException: " + e.getMessage());
         // e.printStackTrace();
@@ -411,10 +411,12 @@ class WVM_RMI_Transporter extends WVM_Transporter {
       WVM.out.println("  --  being PINGED thru RMI");
       return true;
     }
-    public boolean receiveMessage(Object msg) throws RemoteException {
-      return _wvm.receiveMessage(msg);
+    public boolean receiveMessage(Object messageKey, Object message) throws RemoteException {
+      WVM.out.println("  --  received a message thru RMI");
+      return _wvm.receiveMessage(messageKey, message);
     }
     public Object requestMessage(Object messageKey) throws RemoteException {
+      WVM.out.println("  --  received a message request thru RMI");
       return _wvm.requestMessage(messageKey);
     }
     // END: Server-side ///////////////////////////////////////////////////////

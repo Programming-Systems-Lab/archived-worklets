@@ -24,7 +24,7 @@ interface WVM_Host extends java.rmi.Remote {
   public boolean ping() throws RemoteException;
   // used to, well, ping the remote WVM
 
-  public boolean receiveMessage(Object _message) throws RemoteException;
+  public boolean receiveMessage(Object _messageKey, Object _message) throws RemoteException;
   public Object requestMessage(Object _messageKey) throws RemoteException;
 }
 

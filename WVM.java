@@ -124,8 +124,8 @@ public final class WVM extends Thread {
   public boolean ping(String wvmURL) {
     return (transporter.ping(wvmURL));
   }
-  public boolean sendMessage(Object message, String wvmURL) {
-    return (transporter.sendMessage(message, wvmURL));
+  public boolean sendMessage(Object messageKey, Object message, String wvmURL) {
+    return (transporter.sendMessage(messageKey, message, wvmURL));
   }
   public Object getMessage(Object messageKey, String wvmURL) {
     return (transporter.getMessage(messageKey, wvmURL));
@@ -133,17 +133,41 @@ public final class WVM extends Thread {
   // END: Client-side //////////////////////////////////////////////////////////
 
   // Server-side ///////////////////////////////////////////////////////////////
-  private final Vector messageQueue = new Vector();
-  boolean receiveMessage(Object message) {
-    synchronized (messageQueue) {
-      messageQueue.addElement(message);
-      notify(); // wake up the host system, if it is waiting to receive messages
-      return true;
+  public Runnable requestHandler = null;
+  // Not used ... final Vector messageQueue = new Vector();
+  public final Hashtable messageQueueKeys = new Hashtable();
+  public final Hashtable messageQueueMsgs = new Hashtable();
+
+  boolean receiveMessage(Object messageKey, Object message) {
+    Thread t = new Thread(requestHandler);
+    Integer i = new Integer(t.hashCode());
+    String uniqueKey = i + "-" + messageKey;
+
+    messageQueueMsgs.put(uniqueKey, message);
+    messageQueueMsgs.put(i, uniqueKey);
+    messageQueueKeys.put(i, messageKey);
+
+    if (requestHandler != null) {
+      t.start();
+      try { t.join(200); } catch (InterruptedException ie) { }
     }
+
+    return true;
   }
+
   Object requestMessage(Object messageKey) {
-    // 2-do
-    return null;
+    Thread t = new Thread(requestHandler);
+    Integer i = new Integer(t.hashCode());
+    String uniqueKey = i + "-" + messageKey;
+
+    messageQueueMsgs.put(i, uniqueKey);
+    messageQueueKeys.put(i, messageKey);
+
+    if (requestHandler != null) {
+      t.start();
+      try { t.join(5000); } catch (InterruptedException ie) { }
+      return messageQueueMsgs.get(uniqueKey);
+    } else return null;
   }
   // END: Server-side //////////////////////////////////////////////////////////
 
@@ -155,4 +179,3 @@ public final class WVM extends Thread {
   }
 
 }
-

@@ -11,6 +11,10 @@
     message-passing ... this will be used for control-passing
   - _activeWorklets is static in WVM .. change this
   - determine practicality+usage of WVM.getMessage(msgKey);
+  - modify WVM's requestHandler so that it can choose from a variety
+    of requestHandlers provided by the hostSystem
+  - use the 'locking-trick' from MP-Oracle for synchronising threads
+    and provide that as a primitive in the WVM
 
 14 November 2001
 ================
