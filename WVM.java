@@ -20,7 +20,7 @@ public final class WVM extends Thread {
   private final Vector _installedWorklets = new Vector();
 
   public WVM(Object system) {
-    this(system, "127.0.0.1", "WVM");
+    this(system, null, "WVM");
   }
 
   public WVM(Object system, String host, String name) {
@@ -33,6 +33,11 @@ public final class WVM extends Thread {
     start();
     _system = system;
     try {
+      if (host == null) {
+        try {
+          host = InetAddress.getLocalHost().getHostAddress();
+        } catch (IOException e) { }
+      }
       transporter = new WVM_RMI_Transporter(this, host, name, port);
       transporter.start();
     } catch (Exception e) {
