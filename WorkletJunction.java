@@ -44,16 +44,15 @@ public abstract class WorkletJunction implements Serializable {
     _payload = new Hashtable();
   }
 
-  void setOriginWorkletJunction(WorkletJunction origin) {
+  final void setOriginWorkletJunction(WorkletJunction origin) {
     _originJunction = origin;
   }
 
-  protected void init(Object system, WVM wvm) {
-    _system = system;
-    _wvm = wvm;
+  final void sysInit(Object system, WVM wvm) {
+    init(_system = system, _wvm = wvm);
   }
 
-  void run() {
+  final void run() {
     while (_state == WorkletJacket.STATE_READY) {
       try {
         synchronized (this) {
@@ -71,18 +70,21 @@ public abstract class WorkletJunction implements Serializable {
     }
   }
 
+  protected abstract void init(Object system, WVM wvm);
+  // Sub-classes must provide specific implementations
+
   protected abstract void execute();
   // Sub-classes must provide specific implementations
 
-  String getHost() {
+  final String getHost() {
     return (_host);
   }
 
-  String getName() {
+  final String getName() {
     return (_name);
   }
 
-  int getPort() {
+  final int getPort() {
     return (_port);
   }
 

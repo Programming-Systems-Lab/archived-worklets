@@ -97,6 +97,7 @@ public class WorkletTest implements Serializable {
 				
 				
 				wkl.addJunction(new WorkletJunction(rHost, rName, rPort) {
+          public void init(Object system, WVM wvm) { }
 					public void execute() {
 					    WVM.out.println("\t --- Totally New Component ---");
 					    try {

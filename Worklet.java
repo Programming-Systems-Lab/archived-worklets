@@ -57,11 +57,11 @@ public final class Worklet implements Runnable, Serializable {
     _wvm = wvm;
     _system = system;    
     if (_atOrigin) {
-      _originJunction.init(system, wvm);
+      _originJunction.sysInit(system, wvm);
     } else {
       classHashSet = new HashSet();
       _wjClasses.removeElement(_currentJunction.getClass());
-      _currentJunction.init(system, wvm);
+      _currentJunction.sysInit(system, wvm);
     }
   }
   

@@ -32,6 +32,7 @@ class OriginWJ extends WorkletJunction {
   OriginWJ(String _host, String _name, int _port) {
     super(_host, _name, _port);
   }
+  public void init(Object system, WVM wvm) { }
   public void execute() {
     // WVM.out.println("da BytecodeRetrieval is alive @ origin");
     Enumeration keys = _payload.keys();
@@ -58,6 +59,7 @@ class TargetWJ extends WorkletJunction {
     super(rHost, rName, rPort);
     hs = _hs;
   }
+  public void init(Object system, WVM wvm) { }
   public void execute() {
     // WVM.out.println("da BytecodeRetrieval is alive @ target: " + hs.size());
     Iterator it = hs.iterator();

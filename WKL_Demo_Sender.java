@@ -407,6 +407,7 @@ class WKLDemo_WorkletJunction extends WorkletJunction {
      }
   }
 
+  public void init(Object system, WVM wvm) { }
   public void execute() {
     WVM.out.println("a worklet has arrived ... ");
     WVM.out.println(" and it has brought with it an application ...  ");
