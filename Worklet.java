@@ -75,7 +75,7 @@ public final class Worklet implements Runnable, Serializable {
     } else {
       _currentJunction.execute();
 
-      if (!WVM.NO_BYTECODE_RETRIEVAL_WORKLET && retrieveBytecode && !(_currentJunction instanceof psl.worklets.TargetWJ)) {
+      if (!WVM.NO_BYTECODE_RETRIEVAL_WORKLET && retrieveBytecode /* && !(_currentJunction instanceof psl.worklets.TargetWJ)*/ ) {
         // new BytecodeRetrieval(classHashSet, _wvm, _wvm.transporter._host, _wvm.transporter._name, _wvm.transporter._port, _lHost, _lName, _lPort);
       }
 
@@ -122,6 +122,11 @@ public final class Worklet implements Runnable, Serializable {
     WVM _tmpWVM = _wvm;
     _atOrigin = true;
     _currentJunction = null;
+    
+    _lHost = _wvm.transporter._host;
+    _lName = _wvm.transporter._name;
+    _lPort = _wvm.transporter._port;
+
     if (_originJunction != null) {
       // Use local system to catapult self back to home
       _tmpWVM.transporter.sendWorklet(this, _originJunction);

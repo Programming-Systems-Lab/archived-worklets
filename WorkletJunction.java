@@ -12,10 +12,13 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-public abstract class WorkletJunction implements Serializable {
+public abstract class WorkletJunction implements Runnable, Serializable {
 
+  // addressing info
   protected String _host;
+  // addressing info
   protected String _name;
+  // addressing info
   protected int _port;
 
   protected transient Object _system;
@@ -52,12 +55,13 @@ public abstract class WorkletJunction implements Serializable {
     init(_system = system, _wvm = wvm);
   }
 
-  final void run() {
+  final public void run() {
     while (_state == WorkletJacket.STATE_READY) {
       try {
         synchronized (this) {
           Thread.currentThread().wait();
           // Thread.currentThread().sleep(500);
+          execute();
         }
       } catch (InterruptedException e) { }
     }

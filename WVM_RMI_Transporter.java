@@ -118,9 +118,9 @@ class WVM_RMI_Transporter extends WVM_Transporter {
             WVM.out.println("    non-WVM service: '" + name + "' found registered on RMI Registry");
             continue;
           } catch (NotBoundException e) {
-            WVM.out.println("RMI Service was not bound: " + name);
+            // WVM.out.println("RMI Service was not bound: " + name);
           } catch (MalformedURLException e) {
-            WVM.out.println("MalformedURLException: " + name);
+            // WVM.out.println("MalformedURLException: " + name);
           } finally {
             if (tmpWVM_H != null) WVM.out.println("    unregistered service: " + name);
           }
@@ -139,7 +139,7 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         registryService = false;
       }
     } catch (RemoteException e) {
-      WVM.out.println("RemoteException: " + e.getMessage());
+      // WVM.out.println("RemoteException: " + e.getMessage());
       e.printStackTrace();
     }
     
@@ -149,10 +149,10 @@ class WVM_RMI_Transporter extends WVM_Transporter {
   boolean sendWorklet(Worklet wkl, WorkletJunction wj) {
     if (rmiService) {
       try {
-        WVM.out.println("  --  Sending worklet thru RMI: " + wj);
+        // WVM.out.println("  --  Sending worklet thru RMI: " + wj);
         return (rtu.sendWorklet(wkl, wj));
       } catch (RemoteException e) {
-        WVM.out.println("  --  Cannot send worklets thru RMI, defaulting to sockets");
+        // WVM.out.println("  --  Cannot send worklets thru RMI, defaulting to sockets");
         // e.printStackTrace();
       }
     }
@@ -316,15 +316,15 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         wvmHost.receiveWorklet(wkl);
         return true;
       } catch (NotBoundException e) {
-        WVM.out.println("NotBoundException: " + e);
+        // WVM.out.println("NotBoundException: " + e);
         // e.printStackTrace();
         throw(new RemoteException("" + e));
       } catch (MalformedURLException e) {
-        WVM.out.println("MalformedURLException: " + e);
+        // WVM.out.println("MalformedURLException: " + e);
         // e.printStackTrace();
         throw(new RemoteException("" + e));
       } catch (RemoteException e) {
-        WVM.out.println("RemoteException: " + e);
+        // WVM.out.println("RemoteException: " + e);
         // e.printStackTrace();
         throw(e);
       }
@@ -369,46 +369,46 @@ class WVM_RMI_Transporter extends WVM_Transporter {
     // Client-side ////////////////////////////////////////////////////////////
     boolean ping(String rHost, String rName) {
       try {
-        WVM.out.println("  --  pinging peer WVM thru RMI: " + rName + "@" + rHost);
+        // WVM.out.println("  --  pinging peer WVM thru RMI: " + rName + "@" + rHost);
         return ((WVM_Host) Naming.lookup("//" + rHost + ":" + _port + "/" + rName)).ping();
       } catch (NotBoundException e) {
-        WVM.out.println("NotBoundException: " + e);
+        // WVM.out.println("NotBoundException: " + e);
         // e.printStackTrace();
       } catch (MalformedURLException e) {
-        WVM.out.println("MalformedURLException: " + e);
+        // WVM.out.println("MalformedURLException: " + e);
         // e.printStackTrace();
       } catch (RemoteException rmie) {
-        WVM.out.println("RemoteException: " + rmie);
+        // WVM.out.println("RemoteException: " + rmie);
       }
       return false;
     }
     boolean sendMessage(Object messageKey, Object message, String rHost, String rName) {
       try {
-        WVM.out.println("  --  sending a message to a peer WVM thru RMI: " + rName + "@" + rHost);
+        // WVM.out.println("  --  sending a message to a peer WVM thru RMI: " + rName + "@" + rHost);
         return ((WVM_Host) Naming.lookup("//" + rHost + ":" + _port + "/" + rName)).receiveMessage(messageKey, message);
       } catch (NotBoundException e) {
-        WVM.out.println("NotBoundException: " + e);
+        // WVM.out.println("NotBoundException: " + e);
         // e.printStackTrace();
       } catch (MalformedURLException e) {
-        WVM.out.println("MalformedURLException: " + e);
+        // WVM.out.println("MalformedURLException: " + e);
         // e.printStackTrace();
       } catch (RemoteException rmie) {
-        WVM.out.println("RemoteException: " + rmie);
+        // WVM.out.println("RemoteException: " + rmie);
       }
       return false;
     }
     Object getMessage(Object messageKey, String rHost, String rName) {
       try {
-        WVM.out.println("  --  getting a message from a peer WVM thru RMI: " + rName + "@" + rHost);
+        // WVM.out.println("  --  getting a message from a peer WVM thru RMI: " + rName + "@" + rHost);
         return ((WVM_Host) Naming.lookup("//" + rHost + ":" + _port + "/" + rName)).requestMessage(messageKey);
       } catch (NotBoundException e) {
-        WVM.out.println("NotBoundException: " + e);
+        // WVM.out.println("NotBoundException: " + e);
         // e.printStackTrace();
       } catch (MalformedURLException e) {
-        WVM.out.println("MalformedURLException: " + e);
+        // WVM.out.println("MalformedURLException: " + e);
         // e.printStackTrace();
       } catch (RemoteException rmie) {
-        WVM.out.println("RemoteException: " + rmie);
+        // WVM.out.println("RemoteException: " + rmie);
       }
       return null;
     }
@@ -416,15 +416,15 @@ class WVM_RMI_Transporter extends WVM_Transporter {
 
     // Server-side ////////////////////////////////////////////////////////////
     public boolean ping() throws RemoteException {
-      WVM.out.println("  --  being PINGED thru RMI");
+      // WVM.out.println("  --  being PINGED thru RMI");
       return true;
     }
     public boolean receiveMessage(Object messageKey, Object message) throws RemoteException {
-      WVM.out.println("  --  received a message thru RMI");
+      // WVM.out.println("  --  received a message thru RMI");
       return _wvm.receiveMessage(messageKey, message);
     }
     public Object requestMessage(Object messageKey) throws RemoteException {
-      WVM.out.println("  --  received a message request thru RMI");
+      // WVM.out.println("  --  received a message request thru RMI");
       return _wvm.requestMessage(messageKey);
     }
     // END: Server-side ///////////////////////////////////////////////////////
