@@ -1,0 +1,70 @@
+#!/bin/sh
+
+# Author: Dan Phung (dp2041@cs.columbia.edu)
+# Last updated: 28 October 2002
+# This script is used for packing up the Worklets System
+# for distribution. 
+
+OUTFILE="worklets.tar"
+
+echo " Packing up the Worklets System for distribution"
+echo " Output file is: $OUTFILE.gz"
+
+cd ../../
+
+tar -c \
+psl/worklets/WVM.java \
+psl/worklets/WVM_Transporter.java \
+psl/worklets/WVM_RMI_Transporter.java \
+psl/worklets/WVM_Host.java \
+psl/worklets/WVM_ClassLoader.java \
+psl/worklets/Worklet.java \
+psl/worklets/WorkletJunction.java \
+psl/worklets/JunctionPlanner.java \
+psl/worklets/WorkletID.java \
+psl/worklets/WVM_HostnameVerifier.java \
+psl/worklets/WVM_SSLSocketFactory.java \
+psl/worklets/MultiMap.java \
+psl/worklets/OptionsParser.java \
+psl/worklets/WVM_Registry.java \
+psl/worklets/RTU_Registrar.java \
+psl/worklets/RTU_RegistrarImpl.java \
+psl/worklets/WVM_RMIClassLoaderSpi.java \
+psl/worklets/http/ClassFileServer.java \
+psl/worklets/http/ClassServer.java  \
+psl/worklets/WVMRSL/MulticastServer.java \
+psl/worklets/WVMRSL/Registration.java \
+psl/worklets/WVMRSL/search.java \
+psl/worklets/examples/effectGreeter.java \
+psl/worklets/examples/SystemDispatch.java \
+psl/worklets/examples/WKL_Demo_Sender.java \
+psl/worklets/examples/Greeter.java \
+psl/worklets/examples/SystemDispatchMany.java \
+psl/worklets/examples/WKL_Demo_Target.java \
+psl/worklets/examples/politeGreeter.java \
+psl/worklets/examples/SystemDispatchNotify.java \
+psl/worklets/examples/probeGreeter.java \
+psl/worklets/examples/SystemDispatchStats.java \
+psl/worklets/examples/SystemDispatchDate.java \
+psl/worklets/examples/testPrio.java \
+psl/worklets/images/icon16.gif \
+psl/worklets/images/logs.gif \
+psl/worklets/images/SD.gif \
+psl/worklets/images/ss-target.gif \
+psl/worklets/images/icon32.gif \
+psl/worklets/images/pslworklets.gif \
+psl/worklets/images/ss-sender.gif \
+psl/worklets/images/start.gif \
+psl/worklets/Worklets.html \
+psl/worklets/security.html \
+psl/worklets/testkeys \
+psl/worklets/samplecacerts \
+psl/worklets/wvm_properties \
+psl/worklets/Makefile \
+psl/worklets/WVMRSL/README.PSLLRS \
+psl/worklets/README \
+> psl/worklets/$OUTFILE
+
+gzip psl/worklets/$OUTFILE
+
+echo "All done"
