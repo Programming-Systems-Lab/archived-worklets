@@ -1,3 +1,16 @@
+/*
+ * @(#)search.java
+ *
+ * Copyright (c) 2002: The Trustees of Columbia University in the City of New York.  All Rights Reserved
+ *
+ * Copyright (c) 2002: @author Alex Bogomolov
+ *
+ * CVS version control block - do not edit manually
+ *  $RCSfile$
+ *  $Revision$
+ *  $Date$
+ *  $Source$
+ */
 package psl.worklets.WVMRSL;
 
 import java.io.*;

@@ -1,3 +1,17 @@
+/*
+ * @(#)MulticastServer.java
+ *
+ * Copyright (c) 2002: The Trustees of Columbia University in the City of New York.  All Rights Reserved
+ *
+ * Copyright (c) 2002: @author Alex Bogomolov
+ *
+ * CVS version control block - do not edit manually
+ *  $RCSfile$
+ *  $Revision$
+ *  $Date$
+ *  $Source$
+ */
+
 package psl.worklets.WVMRSL;
 
 import java.util.Date;
@@ -9,13 +23,13 @@ import java.awt.event.ActionListener;
 
 import java.net.*;
 
-import javax.xml.parsers.DocumentBuilder; 
-import javax.xml.parsers.DocumentBuilderFactory;  
-import javax.xml.parsers.FactoryConfigurationError;  
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.FactoryConfigurationError;
 import javax.xml.parsers.ParserConfigurationException;
- 
-import org.xml.sax.SAXException;  
-import org.xml.sax.SAXParseException;  
+
+import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 
 import org.w3c.dom.*;
 
@@ -24,16 +38,16 @@ import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.TransformerConfigurationException;
-import javax.xml.transform.dom.DOMSource;  
-import javax.xml.transform.stream.StreamResult; 
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import javax.swing.Timer;
 import java.io.*;
 
 
 public class MulticastServer {
-  
-  
+
+
   private static String addr;
   private static InetAddress mcastAddr;
   private static int port;
@@ -43,15 +57,15 @@ public class MulticastServer {
   private static Vector XMLDocuments; //store WVM descriptions
   final MulticastSocket mcs;
   private static ServerEntry self;
-  static DocumentBuilderFactory factory; 
+  static DocumentBuilderFactory factory;
   static DocumentBuilder builder;
   private static Vector requests; //queue for incoming requests
   private static FileOutputStream log_file;
   private static boolean debug;
-  
+
   public static void main(String args[]) throws IOException {
     System.out.println("usage: java MulticastServer -m <multicast_addr> -p <port> -debug");
-    
+
     addr = "228.5.6.7";
     port = 1234;
     born_on = new Date().getTime();
@@ -68,22 +82,22 @@ public class MulticastServer {
     while(++i < args.length) {
       if (args[i].equals("-m")) addr = args[++i];
       if (args[i].equals("-p")) port = Integer.parseInt(args[++i]);
-      if (args[i].equals("-debug")) debug = true;	
+      if (args[i].equals("-debug")) debug = true;
     }
     System.out.println("Birthdate: " + born_on);
     factory = DocumentBuilderFactory.newInstance();
-    
+
     try {
-      builder = factory.newDocumentBuilder();                   
+      builder = factory.newDocumentBuilder();
     } catch (ParserConfigurationException pce) {
       // Parser with specified options can't be built
       pce.printStackTrace();
-    } 
-    
+    }
+
     mcastAddr = InetAddress.getByName(addr);
     new MulticastServer();
   }
-  
+
 
   //constructor
   private MulticastServer() throws IOException {
@@ -96,24 +110,24 @@ public class MulticastServer {
     serverVector.add(0,self);
     central_server = false;
     SendJoinUpdate();
-    
+
     //on shutdown notify other servers
     Runtime.getRuntime().addShutdownHook(new Thread(){
       public void run(){
         SendExitUpdate();
       }
     });
-    
+
     while (true) {
       byte buf[] = new byte[10000];
       DatagramPacket recv = new DatagramPacket(buf, buf.length);
       mcs.receive(recv);
       ProcessIncoming(new String(buf,0,recv.getLength()));
     }
-    
-    
+
+
   }
-  
+
   public void WriteToLog(String msg){
     if(debug) System.out.println(msg);
     msg = msg + "\n";
@@ -123,13 +137,13 @@ public class MulticastServer {
       System.err.println("Unable to write to log file");
     }
   }
-  
+
   //takes xml document as a string
   //and builds DOM document from it
   //used to process registration and search requests
   public Document BuildDocumentFromString(String s){
     Document document;
-    
+
     byte [] s_bytes = s.getBytes();
     try{
       ByteArrayInputStream bais = new ByteArrayInputStream(s_bytes);
@@ -140,7 +154,7 @@ public class MulticastServer {
     }
     return null;
   }
-  
+
   //remove WVM description based on supplied key
   public void removeDocument(String key){
     WriteToLog("Removing document with key = " + key);
@@ -150,7 +164,7 @@ public class MulticastServer {
         XMLDocuments.removeElementAt(i);
     }
   }
-  
+
   //check if registration for given key exists
   public boolean Registered(String key){
     for(int i=0;i<XMLDocuments.size();i++){
@@ -160,11 +174,11 @@ public class MulticastServer {
     }
     return false;
   }
-  
+
   //check if given document exists in the registration vector
   public boolean Registered(Document doc){
     NodeList elist = doc.getElementsByTagName("ID");
-    
+
     Element id_elem = (Element)elist.item(0);//("ID");
     String id;
     if(id_elem != null){
@@ -179,13 +193,13 @@ public class MulticastServer {
       WriteToLog("ID is not found in supplied document");
       return true;//so that we don't add this doc to the list
     }
-    
+
     for(int i = 0;i<XMLDocuments.size();i++){
       //assuming that all documents registered have id
       Entry entry = (Entry)XMLDocuments.elementAt(i);
       Document d = entry.doc;
       NodeList list = d.getElementsByTagName("ID");
-      
+
       Element e = (Element)list.item(0);
       String   s = e.getAttribute("VALUE");
       if(s.equals(id)){
@@ -195,7 +209,7 @@ public class MulticastServer {
     }
     return false;
   }
-  
+
 
   //takes query document, and compares it to all the
   //documents registered before
@@ -204,9 +218,9 @@ public class MulticastServer {
   //return pair with number of elements used for comparison
   //and number matched
   public String SearchAndBuildResponse(Document doc){
-    Vector response = new Vector();	
+    Vector response = new Vector();
     String result;
-    
+
     for(int i = 0; i < XMLDocuments.size(); i++){
       System.out.println("Searching document at " + i);
       Entry ent = (Entry)XMLDocuments.elementAt(i);
@@ -226,18 +240,18 @@ public class MulticastServer {
     result = result + "</response_list>";
     return result;
   }
-  
+
 
   //send message to multicast address
   public void SendResponse(String s){
     try {
       mcs.send(new DatagramPacket(s.getBytes(), s.length(),
                                   mcastAddr, port));
-    } catch (IOException ioe) { 
+    } catch (IOException ioe) {
       WriteToLog("Unable to send response");
     }
   }
-  
+
   //send message to multicast address
   //send message to client via direct socket communication
   //using supplied ip and port number of the client
@@ -245,10 +259,10 @@ public class MulticastServer {
     try {
       mcs.send(new DatagramPacket(result.getBytes(), result.length(),
                                   mcastAddr, port));
-    } catch (IOException ioe) { 
+    } catch (IOException ioe) {
       WriteToLog("Unable to send response");
     }
-    
+
     WriteToLog("Sending response to "+ip+":" + port);
     Socket ResponseSocket = null;
     PrintWriter out = null;
@@ -263,7 +277,7 @@ public class MulticastServer {
         e.printStackTrace();
         WriteToLog(e.getMessage());
         return;
-    }              
+    }
     out.println(result);
     out.close();
     try{
@@ -314,23 +328,23 @@ public class MulticastServer {
                 ;
               else if( a.matches(   ((Attr)m).getValue())){
                 p.matched++;
-              }			
+              }
             }
           }
-        }		    
+        }
       }
     }
-    
-    
-    //process Children	
+
+
+    //process Children
     if(n.hasChildNodes()){
       NodeList nl = n.getChildNodes();
-      
+
       if(doc == null){
         WriteToLog("doc is null");
         return p;
       }
-      
+
       NodeList elist_a = doc.getElementsByTagName((n.getNodeName()));
       if(elist_a.getLength()==0)
         p.searched++;
@@ -350,7 +364,7 @@ public class MulticastServer {
               return p;
             }
             NodeList elnl = el.getChildNodes();
-            for (int k=0;k<elnl.getLength();k++) { 
+            for (int k=0;k<elnl.getLength();k++) {
               Node b = elnl.item(k);
               if(b==null)
                 continue;
@@ -368,16 +382,16 @@ public class MulticastServer {
                   p.searched++;
                   if(pattern.matches(text)){
                     p.matched++;
-                    break;				
+                    break;
                   }
                 }
               }
               else if (a.getNodeName().equals(b.getNodeName())){
                 found = true;
                 p.add(checkNode(a,doc));
-              }			    
-            }			
-          } 		    
+              }
+            }
+          }
         }
         else {
           found = true;
@@ -385,58 +399,58 @@ public class MulticastServer {
         }
         if(!found)//did not find a child in the target document
           p.searched++;
-      }	    
+      }
     }
     return p;
   }
-  
-  //takes DOM document and converts it to string 
+
+  //takes DOM document and converts it to string
   //used to build response for search queries
   public String DOMToString(Document document){
     String s;
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    try {            
+    try {
       // Use a Transformer for output
       TransformerFactory tFactory =
                                    TransformerFactory.newInstance();
-      Transformer transformer = tFactory.newTransformer();	    
+      Transformer transformer = tFactory.newTransformer();
       DOMSource source = new DOMSource(document);
       StreamResult result = new StreamResult(baos);
       transformer.transform(source, result);
-      
+
     } catch (TransformerConfigurationException tce) {
       // Error generated by the parser
       //System.out.println ("\n** Transformer Factory error");
-      //System.out.println("   " + tce.getMessage() );	    
+      //System.out.println("   " + tce.getMessage() );
       // Use the contained exception, if any
       Throwable x = tce;
       if (tce.getException() != null)
         x = tce.getException();
       x.printStackTrace();
-      
+
     } catch (TransformerException te) {
         // Error generated by the parser
         //System.out.println ("\n** Transformation error");
         //System.out.println("   " + te.getMessage() );
-        
+
         // Use the contained exception, if any
         Throwable x = te;
         if (te.getException() != null)
           x = te.getException();
         x.printStackTrace();
-        
+
     }
     s = baos.toString();
-    return s;	
+    return s;
   }
-  
+
   //process search request here
   public void ProcessSearch(String s){
     String msg_id;
     String ip;
     String port_num;
     String xml_query;
-    
+
     StringTokenizer st = new StringTokenizer(s,":");
     if(st.hasMoreTokens())
       msg_id = st.nextToken();
@@ -473,12 +487,12 @@ public class MulticastServer {
       result = new String("RESPONSE:"+msg_id+":PROCESSED:"+result);
       WriteToLog("Sending response for search request");
       SendResponse(ip,r_port,msg_id,result);
-    } 
+    }
     Request r = new Request(xml_query,msg_id,1,ip,r_port,this);
     requests.add(r);
-    
+
   }
-  
+
   //timed out search request processing
   public void ProcessSearch(String query,String msg_id,String ip,int r_port){
     WriteToLog("Processing Search");
@@ -491,7 +505,7 @@ public class MulticastServer {
     WriteToLog("Sending response for search request");
     SendResponse(ip,r_port,msg_id,result);
   }
-  
+
   //process registration request
   public void ProcessRegistration(String s){
     String msg_id;
@@ -536,7 +550,7 @@ public class MulticastServer {
       if(doc == null){
         WriteToLog("Failed to build the DOM document from query");
       }
-      key = String.valueOf(new Date().getTime());	    
+      key = String.valueOf(new Date().getTime());
       if(!Registered(doc)){
         Entry e = new Entry(doc,key);
         XMLDocuments.add(e);
@@ -544,17 +558,17 @@ public class MulticastServer {
       }
       else {
         result = new String("RESPONSE:"+msg_id+":ALREADY_REGISTERED");
-      }	
+      }
       WriteToLog("SENDING RESPONSE for REGISTRATION: " + result);
       SendResponse(ip,r_port,msg_id,result);
-    } 
+    }
     System.out.println("We are not central server");
     //do not register until response from central server is received
     Request r = new Request(xml_query,msg_id,2,ip,r_port,this);
     requests.add(r);
-    
+
   }
-  
+
   //process timed out registration request
   public void ProcessRegistration(String query,String msg_id,String ip,int r_port){
     //if we get here,we know we are a central server
@@ -565,7 +579,7 @@ public class MulticastServer {
     }
     String key;
     String result;
-    key = String.valueOf(new Date().getTime());	    
+    key = String.valueOf(new Date().getTime());
     if(!Registered(doc)){
       Entry e = new Entry(doc,key);
       XMLDocuments.add(e);
@@ -573,10 +587,10 @@ public class MulticastServer {
     }
     else {
       result = new String("RESPONSE:"+msg_id+":ALREADY_REGISTERED");
-    }	
+    }
     SendResponse(ip,r_port,msg_id,result);
   }
-  
+
   //process registration response
   //if document already registered before
   //do nothing, otherwise proceed with registration
@@ -654,7 +668,7 @@ public class MulticastServer {
     return null;
   }
 
-  //process unregistration request 
+  //process unregistration request
   public void ProcessUnRegistration(String s){
     String msg_id;
     String ip;
@@ -698,13 +712,13 @@ public class MulticastServer {
     if(central_server){
       WriteToLog("Sending response: " + result);
       SendResponse(ip,r_port,msg_id,result);
-    } 
+    }
     //store result , so if request times out, just send it to the client
     Request r = new Request(result,msg_id,3,ip,r_port,this);
     requests.add(r);
-    
+
   }
-  
+
   //process timed out unregistration request
   public void ProcessUnRegistration(String result,String msg_id,String ip,int r_port){
     //if we get here, we know we are a central server
@@ -744,7 +758,7 @@ public class MulticastServer {
         Request rr = (Request)requests.elementAt(i);
         rr.t.restart();
         processUnservicedRequest(rr);
-      }		
+      }
     }
     else {
       //new central server is designated
@@ -761,7 +775,7 @@ public class MulticastServer {
   public void UnsupportedRequest(String s){
     WriteToLog("Received Unsupported request: " + s.substring(0,20));
   }
-  
+
   //process incoming message
   public void ProcessIncoming(String s){
     WriteToLog("RECEIVED: " + s );
@@ -779,21 +793,21 @@ public class MulticastServer {
       ProcessResponse(s);
     else if(s.startsWith("INAVLID"))
       ;//do nothing
-    else 
+    else
       UnsupportedRequest(s);
   }
-  
+
   //server status update
   //if live, add server if not added (which it should be)
   //if exiting, remove it
-  //if message says that it's central server, 
+  //if message says that it's central server,
   //make sure that it is
   public void ProcessServerUpdate(String s){
     WriteToLog("Received update: " + s);
     StringTokenizer st = new StringTokenizer(s,":");
     String token = st.nextToken();
     String bd = st.nextToken();
-    String status = st.nextToken();        
+    String status = st.nextToken();
     long b_d = Long.parseLong(bd,10);
     if(b_d == born_on) return;//own message
     if(st.hasMoreTokens()){
@@ -806,7 +820,7 @@ public class MulticastServer {
     else
       removeServer(b_d);
   }
-  
+
   //checks that the server that says it's central,
   //really is central
   //if not , makes it central
@@ -828,7 +842,7 @@ public class MulticastServer {
         serverVector.insertElementAt(new ServerEntry(this,birth_date,true,false),0);
     }
   }
-  
+
   //makes this server central server
   public void MakeCentral(){
     ServerEntry se = (ServerEntry)serverVector.elementAt(0);
@@ -840,7 +854,7 @@ public class MulticastServer {
     System.out.println("In MakeCentral()");
     self.t1.stop();
   }
-  
+
   //new server came up
   //add it to the vector and
   //send update so it has our info
@@ -849,14 +863,14 @@ public class MulticastServer {
     String token = st.nextToken();
     String bd = st.nextToken();
     String status = st.nextToken();
-    long b_d = Long.parseLong(bd,10); 
+    long b_d = Long.parseLong(bd,10);
     if(b_d == born_on) return;//own message
     else
       WriteToLog("RECEIVED UPDATE: " + s);
     addServer(b_d);
     SendUpdate();
   }
-  
+
   //remove server from the vector
   //it died or timed out
   public void removeServer(long birth_date){
@@ -865,7 +879,7 @@ public class MulticastServer {
       ServerEntry se = (ServerEntry)serverVector.elementAt(i);
       if(se.birth_date == birth_date){
         se.t.stop();
-        
+
         if(serverVector.removeElement(se))
           WriteToLog("removed");
         else
@@ -877,12 +891,12 @@ public class MulticastServer {
       central_server = true;
       SendUpdate();
     }
-    else{ 
+    else{
       central_server = false;
-      
+
     }
   }
-  
+
   //remove server
   //called from ServerEntry upon time out
   public void removeServer(ServerEntry se){
@@ -897,8 +911,8 @@ public class MulticastServer {
       central_server = false;
     }
   }
-  
-  
+
+
   //check if this server already exists in the vector
   //if not, add it
   public void addServer(long birth_date){
@@ -913,7 +927,7 @@ public class MulticastServer {
         break;
       } else if(se.birth_date == birth_date){
         exists = true;
-        ((ServerEntry)serverVector.elementAt(i)).t.restart();   
+        ((ServerEntry)serverVector.elementAt(i)).t.restart();
         break;
       }
     }
@@ -925,13 +939,13 @@ public class MulticastServer {
       WriteToLog("CENTRAL SERVER");
       central_server = true;
     }
-    else{ 
+    else{
       central_server = false;
       WriteToLog("BACKUP SERVER");
     }
-    
+
   }
-  
+
   //notify others that request is invalid
   //so that they remove it from their queue
   public void SendInvalid(){
@@ -941,7 +955,7 @@ public class MulticastServer {
       try {
         mcs.send(new DatagramPacket(line.getBytes(), line.length(),
                                     mcastAddr, port));
-      } catch (IOException ioe) { 
+      } catch (IOException ioe) {
         WriteToLog("Error sending multicast message");
       }
     }
@@ -949,7 +963,7 @@ public class MulticastServer {
 
   //notify others that this server is dying
   public void SendExitUpdate(){
-    String line  = new String("UPDATE:"+born_on+":EXITING"); 
+    String line  = new String("UPDATE:"+born_on+":EXITING");
     try {
       mcs.send(new DatagramPacket(line.getBytes(), line.length(),
                                   mcastAddr, port));
@@ -964,11 +978,11 @@ public class MulticastServer {
     try {
       mcs.send(new DatagramPacket(line.getBytes(), line.length(),
                                   mcastAddr, port));
-    } catch (IOException ioe) { 
+    } catch (IOException ioe) {
       WriteToLog("Error sending update to multicast");
     }
   }
-  
+
   //notify others that this server just came up
   //so that they have our info, and send us theirs
   public void SendJoinUpdate(){
@@ -978,7 +992,7 @@ public class MulticastServer {
                                   mcastAddr, port));
     } catch (IOException ioe) { }
   }
-  
+
   //class for storing server info
   //contains timers for time out
   //and start up
@@ -1016,9 +1030,9 @@ public class MulticastServer {
           });
         t1.start();
         System.out.println("Started  timer");
-      } 
+      }
     }
-  }      
+  }
 
   //clas to store request info in the queue
   public class Request{
@@ -1029,10 +1043,10 @@ public class MulticastServer {
     String ip;
     int port;
     String result;
-    
+
     int action; //1 for search,2 for registration
-    
-    
+
+
     public Request(String s,String i,int a,String address,int port_num,MulticastServer p){
       request = new String (s);
       owner = p;
@@ -1061,24 +1075,24 @@ public class MulticastServer {
       key = k;
     }
   }
-  
+
   //store results of the compare operation for DOM documents
   //searched - number of nodes tried for comparison
   //matched  - number of nodes that matched the query
   public class pair{
     int searched;
     int matched;
-    
+
     public void pair(){
       searched = 0;
       matched = 0;
     }
-    
+
     public void pair(int i,int j){
       searched = i;
       matched = j;
     }
-    
+
     public pair add(pair p){
       this.searched += p.searched;
       this.matched += p.matched;
@@ -1086,6 +1100,6 @@ public class MulticastServer {
     }
   }
 
-}   
+}
 
 
