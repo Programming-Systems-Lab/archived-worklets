@@ -6,7 +6,7 @@ all:  wkl rmi
 wkl:  WVM.java WVM_Host.java WVM_Transporter.java Worklet.java WorkletJunction.java
 	$(JCC) -g *.java http/*.java
 
-rmi: WVM_RMI_Transporter.java
+rmi: WVM_RMI_Transporter.class
 	$(RMI) -d ../.. psl.worklets.WVM_RMI_Transporter.RTU
 
 dm:    WKL_Demo_Sender.java WKL_Demo_Target.java
