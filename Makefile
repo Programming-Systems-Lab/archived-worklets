@@ -6,7 +6,7 @@ all:  wkl rmi
 
 wkl:  WVM.java WVM_Host.java WVM_Transporter.java Worklet.java WorkletJunction.java
 	# Compiling ... 
-	$(JCC) -g ${JCFLAGS} *.java http/*.java
+	$(JCC) -g ${JCFLAGS} *.java http/*.java WVMRSL/*.java
 
 rmi: WVM_RMI_Transporter.class
 	# Creating rmi stubs/skeletons ... 
@@ -17,5 +17,5 @@ dm:    WKL_Demo_Sender.java WKL_Demo_Target.java
 
 clean:
 	# Deleting class files ... 
-	rm -f *.class http/*.class
+	rm -f *.class http/*.class WVMRSL/*.class
 

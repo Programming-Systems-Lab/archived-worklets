@@ -15,17 +15,21 @@ package psl.worklets;
  * 
 */
 
+import psl.worklets.WVMRSL.Registration;
 import java.io.*;
 import java.net.*;
 import java.util.*;
 
 public final class WVM extends Thread {
-  public static PrintStream out = System.out;
-  WVM_Transporter transporter;
-  private final Object _system;
-  private final Hashtable _peers = new Hashtable();
-  private final Vector _installedWorklets = new Vector();
-  private final MultiMap _installedJunctions = new MultiMap();
+    public static PrintStream out = System.out;
+    WVM_Transporter transporter;
+    private final Object _system;
+    private static Registration reg; 
+    private static boolean registered;
+    private static Properties reg_ini;
+    private final Hashtable _peers = new Hashtable();
+    private final Vector _installedWorklets = new Vector();
+    private final MultiMap _installedJunctions = new MultiMap();
 
   public static boolean NO_BYTECODE_RETRIEVAL_WORKLET = false;
   public final static String time() {
@@ -35,6 +39,7 @@ public final class WVM extends Thread {
 
   public static final int DEBUG = Integer.parseInt(System.getProperty("DEBUG", "0"));
   public static final boolean DEBUG(int d) { return d<DEBUG; }
+  public static final String ini_file = new String(System.getProperty("INIFILE",""));
 
   public WVM(Object system) {
     this(system, null, "WVM");
@@ -66,15 +71,42 @@ public final class WVM extends Thread {
       WVM.out.println(e.getMessage());
       e.printStackTrace();
     }
+    
+    if(initRegistration()){
+	
+	if(Register()){
+	    registered = true;
+	    _myStats.log("Registrationl succesful");
+	} else {
+	    registered = false;
+	    _myStats.log("Registrationl UNSUCCESFUL");
+	}
+    } else {
+	System.out.println("Could not init Registration object");
+}
+    
     Runtime.getRuntime().addShutdownHook(new Thread() {
       public void run() {
-      shutdown();
-      }
+    if(registered){
+//	System.out.println("Trying to unregister");
+	if(Unregister(true)){
+	    _myStats.log("UnRegistrationl succesful");
+	} else {
+	    _myStats.log("UnRegistrationl UNSUCCESFUL");
+	} 
+    }
+
+   
+	     shutdown();
+       }
       });
     start();
   }
 
   public void shutdown() {
+
+
+
     _peers.clear();
     _installedWorklets.clear();
 
@@ -125,6 +157,58 @@ public final class WVM extends Thread {
   public String toString() {
     return (transporter.toString());
   }
+
+
+    public boolean initRegistration(){
+	Properties p = new Properties();
+
+	try{	     
+	    p.load(new FileInputStream(ini_file));
+	} catch(Exception e){
+	    _myStats.log("Error reading properties from file: " + ini_file);
+	    return false;
+	}
+	
+	String ip = p.getProperty("IP");//multicast ip
+	if(ip == null){
+	    _myStats.log("Property missing: IP");
+	    return false;
+	}
+	String port = p.getProperty("PORT");//multicast port
+	if(port == null){
+	    _myStats.log("Property missing: PORT");
+	    return false;
+	}
+	int portt = Integer.parseInt(port);
+
+	String local_port = p.getProperty("LOCAL_PORT");//local server port for registration response
+	if(local_port == null){
+	    _myStats.log("Property missing: LOCAL_PORT");
+	    return false;
+	}
+	int local_portt = Integer.parseInt(local_port);
+
+	try{
+	reg = new 
+Registration(ip,portt,local_portt,"",getWVMName(),getWVMAddr(),getWVMPort());
+        }	catch (Exception e){
+	return false;
+	}
+	return true;
+    }
+
+    public boolean Register(){
+	return reg.Register();
+    }
+
+    public boolean Unregister(){
+	return reg.Unregister(false);
+    }
+
+    public boolean Unregister(boolean dying){
+	System.out.println("Calling unregistration");
+	return reg.Unregister(dying);
+}
 
   public int getWVMPort() { return (transporter._port); }
   public String getWVMName() { return (transporter._name); }

@@ -1,3 +1,5 @@
+package psl.worklets.WVMRSL;
+
 import java.io.*;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
@@ -36,6 +38,7 @@ public class Registration{
     private static String WVM_ip;
     private static int WVM_port;
     private static boolean unregister;
+    private static boolean done_s, done_g, status_s, status_g;
     ServerSocket my_socket = null;
     boolean locked =true;
 
@@ -66,19 +69,42 @@ public class Registration{
 	}
 	
 	
-	
-	Registration reg = new Registration(address,port_num,l_port,query,f_name,Id,wvmip,WVM_port);
+	System.out.println("We get here");
+	Registration reg = new Registration(address,port_num,l_port,query,f_name,Id,wvmip,WVM_port,true);
 	
     }
 
 
-    private Registration(String address, int port_num, int l_port, String query,String f_name,String Id,String ip,int wvmport) throws IOException {
+    public Registration(String address, int port_num, int l_port, String query,String Id,String wvm_host,int wvmport) throws IOException {
 
 	addr = address;
 	port = port_num;
 	listen_port = l_port;
 	xml_query = query;
-	file_name = f_name;
+	file_name = "";
+	id = Id;
+	WVM_ip = wvm_host;
+	WVM_port = wvmport;
+	System.out.println(addr);
+	mcastAddr = InetAddress.getByName(addr);
+	mcs = new MulticastSocket(port);
+	mcs.joinGroup(mcastAddr);
+	done_s=done_g=status_s=status_g=false;
+	//new RegistrationThread(this,true).start();
+	//new RegistrationThread(this,false).start();
+	//SendRequest();
+	//GetResponse();
+    }
+
+     public Registration(String address, int port_num, int l_port, String 
+query,String filen,String Id,String ip,int wvmport,boolean from_main) 
+throws IOException {
+
+	addr = address;
+	port = port_num;
+	listen_port = l_port;
+	xml_query = query;
+	file_name = filen;
 	id = Id;
 	WVM_ip = ip;
 	WVM_port = wvmport;
@@ -86,32 +112,61 @@ public class Registration{
 	mcastAddr = InetAddress.getByName(addr);
 	mcs = new MulticastSocket(port);
 	mcs.joinGroup(mcastAddr);
-	
+	done_s=done_g=status_s=status_g=false;
 	new RegistrationThread(this,true).start();
 	new RegistrationThread(this,false).start();
 	//SendRequest();
 	//GetResponse();
     }
 
+    public boolean Register(){
+	unregister = false;
+	new RegistrationThread(this,true).start();
+	new RegistrationThread(this,false).start();
+	//	return SendRequest();
+	while(!done_s || !done_g){
+	    ;//loop here until done;
+	}
+	if(status_s && status_g)
+	    return true;//successfully completed
+	return false;
+    }
 
-    public void SendRequest(){
+    public boolean Unregister(boolean dying){
+	unregister = true;
+	if(!dying){
+	new RegistrationThread(this,true).start();
+	new RegistrationThread(this,false).start();
+	while(!done_s && !done_g){
+	    ;//loop here until done;
+	}
+	if(status_s && status_g)
+	    return true;//successfully completed
+	return false;
+	}else{
+	System.out.println("Sending Unregistration request");
+		return SendUnRegistrationRequest();
+	}
+    }
+
+    public boolean SendRequest(){
 	while(locked){
 	    System.out.println("LOCKED");;//do nothing
 	}
 	if(!unregister){
 	    if(file_name != null && !file_name.equals("")){ //read query from the file
-		SendRequestFromFile();
+		return SendRequestFromFile();
 	    }else{
-		SendRequestFromQuery();
+		return SendRequestFromQuery();
 	    }
 	} else {
-	    SendUnRegistrationRequest();
+	    return SendUnRegistrationRequest();
 	}
 	
 
     }
     
-    public void SendUnRegistrationRequest(){
+    public boolean SendUnRegistrationRequest(){
 	String msg_id = new String("registration_"+String.valueOf(new Date().getTime()));
 	String local_ip = "0.0.0.0";
 	try{
@@ -119,6 +174,7 @@ public class Registration{
 	} catch (Exception e){
 	    System.out.println("Unable to get local host ip...");
 	    e.printStackTrace();
+	    return false;
 	}
 	String to_send = new String("UNREGISTER:"+msg_id+":" + local_ip + ":" + listen_port +":"+key);
 	try {
@@ -126,11 +182,13 @@ public class Registration{
 					mcastAddr, port));
 	} catch (IOException ioe) { 
 	    System.out.println("Unable to send request");
+	    return false;
 	}
+	return true;
     }
 
 
-    public void SendRequestFromFile(){
+    public boolean SendRequestFromFile(){
 	String msg_id = new String("registration_"+String.valueOf(new Date().getTime()));
 	DocumentBuilderFactory factory =
             DocumentBuilderFactory.newInstance();
@@ -145,11 +203,11 @@ public class Registration{
 	    String id;
 	    String local_ip = InetAddress.getLocalHost().getHostAddress();
 	    
-	    if(id_elem != null){
+	    if(id_elem != null) {
 		id = id_elem.getAttribute("VALUE");
 		if(id.equals("")){
 		    System.out.println("ID IS MISSING");
-		    System.exit(-1);
+		    return false;
 		}
 		else{
 		    System.out.println("Trying to register ID: " + id);
@@ -160,9 +218,12 @@ public class Registration{
 		    System.out.println("SENDING");
 		    } catch (IOException ioe) { 
 			System.out.println("Unable to send request");
+			return false;
 		    }
 		}
 	    }
+	    else
+		return false;
 		    
 
 	} catch (SAXException sxe) {
@@ -172,20 +233,21 @@ public class Registration{
 	    if (sxe.getException() != null)
 		x = sxe.getException();
 	    x.printStackTrace();
-	    
+	    return false;
         } catch (ParserConfigurationException pce) {
             // Parser with specified options can't be built
             pce.printStackTrace();
-	    
+	    return false;
         } catch (IOException ioe) {
 	    // I/O error
 	    ioe.printStackTrace();
+	    return false;
         }
-	System.out.println("Sent request");
+	return true;
     }
 
     
-    public void SendRequestFromQuery(){
+    public boolean SendRequestFromQuery(){
 	String msg_id = new String("registration_"+ String.valueOf(new Date().getTime()));
 	String local_ip = "0.0.0.0";
 	try{
@@ -193,16 +255,20 @@ public class Registration{
 	} catch (Exception e){
 	    System.out.println("Unable to get local host ip...");
 	    e.printStackTrace();
+	    return false;
 	}
 	String query =new String("<?xml version='1.0' encoding='utf-8'?> <WVM_DESCRIPTION> <ID VALUE=\"" + id +"\"/>");
-	query = query + "<IP>"+ WVM_ip+"</IP><port>"+WVM_port+"</port>"+query+"</WVM+DESCRIPTION>";
+	query = query + "<IP>"+ 
+WVM_ip+"</IP><port>"+WVM_port+"</port>"+xml_query+"</WVM_DESCRIPTION>";
 	query  = new String("REGISTER:"+msg_id+":" + local_ip+":"+listen_port+":" + query);
 	    try {
 	    mcs.send(new DatagramPacket(query.getBytes(), query.length(),
 					mcastAddr, port));
 	} catch (IOException ioe) { 
 	    System.out.println("Unable to send request");
+	    return false;
 	}
+	    return true;
     }
 
 
@@ -250,17 +316,17 @@ public class Registration{
     }
 
 
-    public void GetResponse(){
+    public boolean GetResponse(){
 	try {
             my_socket = new ServerSocket(listen_port);
 	    System.err.println("Created socket on port: " + listen_port);
         } catch (IOException e) {
             System.err.println("Could not listen on port: " + listen_port);
-            System.exit(-1);
+	    return false;
         }
 	locked = false;
 	try {	
-		
+	    my_socket.setSoTimeout(1000*60);
 	    Socket socket = my_socket.accept();
 	    
 	    BufferedReader in = null;		
@@ -270,7 +336,7 @@ public class Registration{
 	    while((temp = in.readLine())!=null)
 		incoming = incoming + temp;
 	    
-	    System.out.println("RECEIVED SEARCH RESPONSE:\n"+incoming);
+	    System.out.println("RECEIVED REGISTRATION RESPONSE:\n"+incoming);
 	    StringTokenizer st = new StringTokenizer(incoming,":");
 	    String s = st.nextToken();
 	    s = st.nextToken();
@@ -280,14 +346,21 @@ public class Registration{
 		System.out.println("STORED KEY: " + key);
 	    }
 	}
+	catch (java.net.SocketTimeoutException ste){
+	    System.err.println("Timeout on getting registration response");
+	    return false;
+	}
 	catch (Exception e) {
 	    System.err.println("Error getting server response...");
 	    e.printStackTrace();
+	    return false;
 	}
 	try{
 	    my_socket.close();
-	}catch(Exception e){}
-	
+	}catch(Exception e){
+	    return false;
+	}
+	return true;
     }
 	
     public class RegistrationThread extends Thread {
@@ -298,13 +371,17 @@ public class Registration{
 	    thread_flag = flag;
 	}
 	public void run(){
-	    if(thread_flag)
-		r.GetResponse();
+	    if(thread_flag){
+		done_g = false;
+		status_g = r.GetResponse();
+		done_g = true;
+	    }
 	    else{
 		try{
 		    this.sleep(1000);
 		}catch (Exception e){}
-		r.SendRequest();
+		status_s = r.SendRequest();
+		done_s= true;
 	    }
 	}
     }

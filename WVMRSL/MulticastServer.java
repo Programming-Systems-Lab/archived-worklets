@@ -1,3 +1,5 @@
+package psl.worklets.WVMRSL;
+
 import java.util.Date;
 import java.util.Vector;
 import java.util.StringTokenizer;
@@ -526,8 +528,10 @@ public class MulticastServer {
 	    SendInvalid();
 	    return;
 	}
+	System.out.println("Get here");
 	int r_port = Integer.parseInt(port_num);
 	if(central_server){
+		System.out.println("we are central server");
 	    //build DOm from supplied XML string
 	    Document doc = BuildDocumentFromString(xml_query);
 	    if(doc == null){
@@ -545,6 +549,7 @@ public class MulticastServer {
 	    WriteToLog("SENDING RESPONSE for REGISTRATION: " + result);
 	    SendResponse(ip,r_port,msg_id,result);
 	} 
+	System.out.println("We are not central server");
 	//do not register until response from central server is received
 	Request r = new Request(xml_query,msg_id,2,ip,r_port,this);
 	requests.add(r);
@@ -833,6 +838,7 @@ public class MulticastServer {
 	     WriteToLog("CENTRAL SERVER");
 	     SendUpdate();
 	 }
+	System.out.println("In MakeCentral()");
 	 self.t1.stop();
     }
     
@@ -1005,7 +1011,8 @@ public class MulticastServer {
             if(self){
                    t1 = new javax.swing.Timer(15000,new ActionListener() {
                     public void actionPerformed(ActionEvent e){
-                        parent.MakeCentral();
+        		System.out.println("Making self central from timer");
+	                parent.MakeCentral();
                     }
                 });
                 t1.start();
