@@ -36,7 +36,9 @@ public final class WVM extends Thread {
       if (host == null) {
         try {
           host = InetAddress.getLocalHost().getHostAddress();
-        } catch (IOException e) { }
+        } catch (IOException e) {
+          host = "127.0.0.1";
+        }
       }
       transporter = new WVM_RMI_Transporter(this, host, name, port);
       transporter.start();
