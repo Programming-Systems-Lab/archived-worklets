@@ -1,0 +1,18 @@
+To compile and run the system J2SE 1.4 is required.
+to compile use javac
+to run use java
+MutlicastServer takes the following arugments:
+ -m <multicast_addr> -p <port> -debug
+
+Registration takes the following arguments:
+ -m <multicast_addr> -p <port> -f <file_name> -l<local_port> -i <id> -unregister <key>
+if -unregister is supplied, module will submit unregistration request
+
+search take the following arguments:
+-m <multicast_addr> -p <port> -f <file_name> -l<local_port>
+
+local port everywhere is the port to listen to server response on.
+port is the multicast port.
+
+
+
