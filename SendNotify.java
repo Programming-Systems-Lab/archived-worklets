@@ -46,7 +46,8 @@ public class SendNotify implements Serializable {
 	    Worklet wkl = new Worklet(originJunction);
 
 	    WorkletID id = new WorkletID("notifier");
-	    wkl.addJunction(new WorkletJunction(rHost, rName, rPort, id) {
+	    wkl.addJunction(new WorkletJunction(rHost, rName, -1, rPort, 
+						false, id, null) {
 
 		    public void init(Object _system, WVM _wvm) {
 		    }
