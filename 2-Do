@@ -1,5 +1,10 @@
+14 November 2001
+================
+  - SystemDispatch should be able to carry over system property
+    values set on the command line: -DDEBUG_LEVEL=50
+
 03 October 2001
-==============
+===============
   - increase capability of SystemDispatch:
     + add ability to pass cmdLine params to app being dispatched      ;)
     + add ability to transfer files from local FS to target site      ;)
