@@ -25,6 +25,9 @@ public final class WVM extends Thread {
     return ("@ " + (1000 + c.get(Calendar.SECOND))%1000 + ":" + (1000 + c.get(Calendar.MILLISECOND))%1000 + " - ");
   }
 
+  public static final int DEBUG = Integer.parseInt(System.getProperty("DEBUG", "0"));
+  public static final boolean DEBUG(int d) { return d<DEBUG; }
+
   public WVM(Object system) {
     this(system, null, "WVM");
   }

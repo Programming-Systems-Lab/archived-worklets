@@ -132,8 +132,9 @@ public abstract class ClassServer implements Runnable {
           bytecodes = getBytes(path);
           // cache the bytecodes to be sent out
           put(path, bytecodes);
-          WVM.out.println(" + + + Caching bytecode for class: " + path);
+          WVM.out.println(" + + + Caching binary data for file: " + path);
         }
+
         // WVM.out.println("Retrieved bytecodes: " + bytecodes.length);
 
         // NOT RELEVANT ANY MORE: okay, the bytecode is definitely available locally
@@ -198,7 +199,7 @@ public abstract class ClassServer implements Runnable {
    */
   private static String getPath(BufferedReader in) throws IOException {
     String line = in.readLine();
-    // WVM.out.println(" + + + request is: " + line);
+    WVM.out.println("\n + + + request is: " + line);
     String path = "";
     // extract class from GET line
     if (line.startsWith("GET /")) {
@@ -206,8 +207,10 @@ public abstract class ClassServer implements Runnable {
       int index = line.indexOf(".class ");
       if (index != -1) {
         path = line.substring(0, index).replace('/', '.');
-        // WVM.out.println ("path is: " + path);
+      } else {
+        path = new StringTokenizer(line, " ").nextToken();
       }
+      if (WVM.DEBUG(3)) WVM.out.println("path is: " + path);
     }
 
     // eat the rest of header

@@ -42,15 +42,14 @@ GOOD_BLOCK:
           int size = urlCon.getContentLength();
           // if (size == 0) continue;
           bytecode = new byte[size];
+
           int total = 0;
           while (total < size) {
-          	int actual;
-          	actual = is.read(bytecode, total, size-total);
-          	total += actual;
-          	//WVM.out.println("Got " + total + " bytes from ClassServer for class: " + name);
-        }
-        
-          // WVM.out.println("Got " + size + " bytes from ClassServer for class: " + name);
+            int actual;
+            actual = is.read(bytecode, total, size-total);
+            total += actual;
+            // WVM.out.println("Got " + total + " bytes from ClassServer for class: " + name);
+          }
 
           is.close();
           urlCon.disconnect();
@@ -67,13 +66,46 @@ GOOD_BLOCK:
     }
     return defineClass(name, bytecode, 0, bytecode.length);
   }
-  static {
-    // WVM.out.println("WHAT 2 DO HERE???");
-  }
+
   public URL findResource(String name) {
-    WVM.out.println("WHAT 2 DO HERE??? Entered findResource in WCKLN for: " + name);
-    // if contains key, make a new URL and return it!
-    // otherwise, 
+    WVM.out.println(WVM.time() + "WVM_ClassLoader asked to findResource(" + name + ")");
+    byte binary[] = null;
+    if (! ClassServer.containsKey(name)) {
+      Enumeration e = _urlSet.elements();
+      while (e.hasMoreElements()) {
+        try {
+          URL url = new URL(e.nextElement() + name);
+          // WVM.out.println("fndResource testing URL: " + url);
+          HttpURLConnection urlCon = (HttpURLConnection) url.openConnection();
+          urlCon.connect();
+          InputStream is = urlCon.getInputStream();
+          // WVM.out.println("checking on data stream @ " + WVM.time());
+          // int size = is.available();
+          int size = urlCon.getContentLength();
+          // if (size == 0) continue;
+          binary = new byte[size];
+
+          int total = 0;
+          while (total < size) {
+            int actual;
+            actual = is.read(binary, total, size-total);
+            total += actual;
+            // WVM.out.println("Got " + total + " bytes from ClassServer for class: " + name);
+          }
+
+          is.close();
+          urlCon.disconnect();
+          // add binary to local Webserver cache
+          ClassServer.put(name, binary);
+          
+          // Upgrade url in _urlSet
+          // WVM.out.println("findResource returning URL: " + url);
+          return url;
+        } catch (IOException ioe) {
+          ioe.printStackTrace();
+        }
+      }
+    }
     return super.findResource(name);
   }
   public void addCodebase(URL[] urls) {
