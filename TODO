@@ -1,3 +1,8 @@
+04 May 2001
+===========
+	- customised protocol handlers
+	- customised protocol: eg. WBTP, Worklet Bytecode transfer protocol
+
 05 April 2001
 =============
   - lookup digital code signing
