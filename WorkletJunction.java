@@ -46,7 +46,12 @@ public abstract class WorkletJunction implements Serializable, Runnable {
   protected WorkletJunction _originJunction;
   protected Hashtable _payload;
 
-  int _priority;
+  public static final int SUPER_PRIORITY = 9;
+	public static final int HIGH_PRIORITY  = 7;
+	public static final int MED_PRIORITY   = 5;
+	public static final int LOW_PRIORITY   = 1;
+
+  private	int _priority = MED_PRIORITY;
   int _state = 0; // this is left here for backwards compatibility with WJackCondition
 
   // ------------------------------------------------------------------------------------ //
