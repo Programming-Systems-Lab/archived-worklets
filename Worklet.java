@@ -34,6 +34,9 @@ public final class Worklet implements Runnable, Serializable {
   private WorkletJunction _originJunction;
   private WorkletJunction _currentJunction;
 
+  /** _hashCode used by ClassLoader to index within WVM's _activeWorklets */
+  String _hashCode = null;
+
   private final Vector _route = new Vector();
   private final Vector _junctions = new Vector();
   private final Vector _wjClasses = new Vector();
@@ -72,31 +75,41 @@ public final class Worklet implements Runnable, Serializable {
     }
   }
 
+  /** not to be invoked externally */
   public void run() {
     execute();
   }
 
-  private void execute() {
-    if (_atOrigin) {
-      _originJunction.run();
+  void execute() {
+    (new Thread() {
+      // create a new thread regardless
+      public void run() {
+        // 2-do: create _priority variable in WJ: 
+        // 2-do: existing super-priority thread to inherit higher priorities from ... 
+        WorkletJunction _wj = _atOrigin ? _originJunction : _currentJunction;
+        Thread t = new Thread(_wj, _hashCode);
+        t.setPriority(_originJunction._priority);
+        t.start();
         
-    } else {
-      if (_currentJunction.dropOff())
-        (new Thread(_currentJunction)).start();
-      else 
-        _currentJunction.run();
+        if (_atOrigin || !_currentJunction.dropOff()) {
+          try {
+            t.join();
+          } catch (InterruptedException ie) { }
+        }
 
-      if (!WVM.NO_BYTECODE_RETRIEVAL_WORKLET && retrieveBytecode /* && !(_currentJunction instanceof psl.worklets.TargetWJ)*/ ) {
-        // new BytecodeRetrieval(classHashSet, _wvm, _wvm.transporter._host, _wvm.transporter._name, _wvm.transporter._port, _lHost, _lName, _lPort);
+          /*
+           if (!WVM.NO_BYTECODE_RETRIEVAL_WORKLET && retrieveBytecode && !(_currentJunction instanceof psl.worklets.TargetWJ)) {
+            // new BytecodeRetrieval(classHashSet, _wvm, _wvm.transporter._host, _wvm.transporter._name, _wvm.transporter._port, _lHost, _lName, _lPort);
+          }
+          */
+
+        if (!_atOrigin) {
+          if (_junctions.isEmpty()) returnToOrigin();
+          else moveToNextJunction();
+        }
       }
-
-      if (_junctions.isEmpty()) {
-        returnToOrigin();
-      } else {
-        moveToNextJunction();
-      }
-
-    }
+    }).start();    
+    // immediately return control to the WVM 
   }
 
   public void deployWorklet(WVM wvm) {

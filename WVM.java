@@ -20,340 +20,342 @@ import java.net.*;
 import java.util.*;
 
 public final class WVM extends Thread {
-    public static PrintStream out = System.out;
-    WVM_Transporter transporter;
-    private final Object _system;
-    private final Hashtable _peers = new Hashtable();
-    private final Vector _installedWorklets = new Vector();
-    private final MultiMap _installedJunctions = new MultiMap();
+  public static PrintStream out = System.out;
+  WVM_Transporter transporter;
+  private final Object _system;
+  private final Hashtable _peers = new Hashtable();
+  private final Vector _installedWorklets = new Vector();
+  private final MultiMap _installedJunctions = new MultiMap();
 
-    public static boolean NO_BYTECODE_RETRIEVAL_WORKLET = false;
-    public final static String time() {
-	Calendar c = new GregorianCalendar();
-	return ("@ " + (1000 + c.get(Calendar.SECOND))%1000 + ":" + (1000 + c.get(Calendar.MILLISECOND))%1000 + " - ");
+  public static boolean NO_BYTECODE_RETRIEVAL_WORKLET = false;
+  public final static String time() {
+    Calendar c = new GregorianCalendar();
+    return ("@ " + (1000 + c.get(Calendar.SECOND))%1000 + ":" + (1000 + c.get(Calendar.MILLISECOND))%1000 + " - ");
+  }
+
+  public static final int DEBUG = Integer.parseInt(System.getProperty("DEBUG", "0"));
+  public static final boolean DEBUG(int d) { return d<DEBUG; }
+
+  public WVM(Object system) {
+    this(system, null, "WVM");
+  }
+
+  public WVM(Object system, String host, String name) {
+    this(system, host, name, WVM_Host.PORT+1);
+    // cannot have the WVM_Transporter listen on port: WVM_Host.PORT !!!
+  }  
+
+  public WVM(Object system, String host, String name, int port) {
+    WVM.out.println("WVM created");
+    // URL.setURLStreamHandlerFactory(new WVM_URLStreamHandlerFactory());
+    _system = system;
+    try {
+      if (host == null) {
+        try {
+          host = InetAddress.getLocalHost().getHostAddress();
+        } catch (IOException e) {
+          host = "127.0.0.1";
+        }
+      }
+
+      if (name == null) name =  _system.hashCode() + "_" +  System.currentTimeMillis();
+
+      transporter = new WVM_RMI_Transporter(this, host, name, port);
+      transporter.start();
+    } catch (Exception e) {
+      WVM.out.println(e.getMessage());
+      e.printStackTrace();
     }
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+      public void run() {
+      shutdown();
+      }
+      });
+    start();
+  }
 
-    public static final int DEBUG = Integer.parseInt(System.getProperty("DEBUG", "0"));
-    public static final boolean DEBUG(int d) { return d<DEBUG; }
+  public void shutdown() {
+    _peers.clear();
+    _installedWorklets.clear();
 
-    public WVM(Object system) {
-	this(system, null, "WVM");
+    if (transporter != null) {
+      transporter.shutdown();
+      transporter = null;
     }
+    // _system = null;
+    WVM.out.println("WVM destroyed");
+  }
 
-    public WVM(Object system, String host, String name) {
-	this(system, host, name, WVM_Host.PORT+1);
-	// cannot have the WVM_Transporter listen on port: WVM_Host.PORT !!!
-    }  
-
-    public WVM(Object system, String host, String name, int port) {
-	WVM.out.println("WVM created");
-	// URL.setURLStreamHandlerFactory(new WVM_URLStreamHandlerFactory());
-	_system = system;
-	try {
-	    if (host == null) {
-		try {
-		    host = InetAddress.getLocalHost().getHostAddress();
-		} catch (IOException e) {
-		    host = "127.0.0.1";
-		}
-	    }
-
-	    if (name == null) name =  _system.hashCode() + "_" +  System.currentTimeMillis();
-
-	    transporter = new WVM_RMI_Transporter(this, host, name, port);
-	    transporter.start();
-	} catch (Exception e) {
-	    WVM.out.println(e.getMessage());
-	    e.printStackTrace();
-	}
-	Runtime.getRuntime().addShutdownHook(new Thread() {
-		public void run() {
-		    shutdown();
-		}
-	    });
-	start();
+  final static Hashtable _activeWorklets = new Hashtable();
+  public void run() {
+    Worklet _worklet;
+    synchronized (this) {
+      while (true) {
+        if (_installedWorklets.isEmpty()) {
+          try { 
+            wait();
+          } catch (InterruptedException e) { } 
+        }
+        _worklet = (Worklet) _installedWorklets.firstElement();
+        _installedWorklets.removeElement(_worklet);
+        String hashCode = (new Integer(_worklet.hashCode())).toString();
+        _activeWorklets.put(hashCode, _worklet);
+        executeWorklet(_worklet, hashCode);
+      }
     }
+  }
 
-    public void shutdown() {
-	_peers.clear();
-	_installedWorklets.clear();
-
-	if (transporter != null) {
-	    transporter.shutdown();
-	    transporter = null;
-	}
-	// _system = null;
-	WVM.out.println("WVM destroyed");
+  synchronized void installWorklet(Worklet _worklet) {
+    _worklet.init(_system, this);
+    _installedWorklets.addElement(_worklet);
+    if (_installedWorklets.size() == 1) {
+      // WVM was asleep coz' in-tray was empty, must wake up!
+      this.notifyAll();
     }
-
-    final static Hashtable _activeWorklets = new Hashtable();
-    public void run() {
-	Worklet _worklet;
-	synchronized (this) {
-	    while (true) {
-		if (_installedWorklets.isEmpty()) {
-		    try { 
-			wait();
-		    } catch (InterruptedException e) { } 
-		}
-		_worklet = (Worklet) _installedWorklets.firstElement();
-		_installedWorklets.removeElement(_worklet);
-		String hashCode = (new Integer(_worklet.hashCode())).toString();
-		_activeWorklets.put(hashCode, _worklet);
-		executeWorklet(_worklet, hashCode);
-	    }
-	}
-    }
-
-    synchronized void installWorklet(Worklet _worklet) {
-	_worklet.init(_system, this);
-	_installedWorklets.addElement(_worklet);
-	if (_installedWorklets.size() == 1) {
-	    // WVM was asleep coz' in-tray was empty, must wake up!
-	    this.notifyAll();
-	}
-    }
+  }
   
-    Worklet _executingWorklet;
-    private void executeWorklet(Worklet _worklet, String _hashCode) {
-	_executingWorklet = _worklet;
-	(new Thread(_executingWorklet, _hashCode)).start();
-    }
+  Worklet _executingWorklet;
+  private void executeWorklet(Worklet _worklet, String _hashCode) {
+    _executingWorklet = _worklet;
+    _executingWorklet._hashCode = _hashCode;
+    // (new Thread(_executingWorklet, _hashCode)).start();
+    _executingWorklet.execute();
+  }
 
-    public String toString() {
-	return (transporter.toString());
-    }
+  public String toString() {
+    return (transporter.toString());
+  }
 
-    public int getWVMPort() { return (transporter._port); }
-    public String getWVMName() { return (transporter._name); }
-    public String getWVMAddr() { return (transporter._host); }
-    public int getRMIPort() { return (((WVM_RMI_Transporter) transporter)._port); }
+  public int getWVMPort() { return (transporter._port); }
+  public String getWVMName() { return (transporter._name); }
+  public String getWVMAddr() { return (transporter._host); }
+  public int getRMIPort() { return (((WVM_RMI_Transporter) transporter)._port); }
   
-    // Client-side ///////////////////////////////////////////////////////////////
-    public boolean ping(String wvmURL) {
-	return (transporter.ping(wvmURL));
-    }
-    public boolean sendMessage(Object messageKey, Object message, String wvmURL) {
-	return (transporter.sendMessage(messageKey, message, wvmURL));
-    }
-    public Object getMessage(Object messageKey, String wvmURL) {
-	return (transporter.getMessage(messageKey, wvmURL));
-    }
-    // END: Client-side //////////////////////////////////////////////////////////
+  // Client-side ///////////////////////////////////////////////////////////////
+  public boolean ping(String wvmURL) {
+    return (transporter.ping(wvmURL));
+  }
+  public boolean sendMessage(Object messageKey, Object message, String wvmURL) {
+    return (transporter.sendMessage(messageKey, message, wvmURL));
+  }
+  public Object getMessage(Object messageKey, String wvmURL) {
+    return (transporter.getMessage(messageKey, wvmURL));
+  }
+  // END: Client-side //////////////////////////////////////////////////////////
 
-    // Server-side ///////////////////////////////////////////////////////////////
-    public Runnable requestHandler = null;
-    // Not used ... final Vector messageQueue = new Vector();
-    public final Hashtable messageQueueKeys = new Hashtable();
-    public final Hashtable messageQueueMsgs = new Hashtable();
+  // Server-side ///////////////////////////////////////////////////////////////
+  public Runnable requestHandler = null;
+  // Not used ... final Vector messageQueue = new Vector();
+  public final Hashtable messageQueueKeys = new Hashtable();
+  public final Hashtable messageQueueMsgs = new Hashtable();
 
-    boolean receiveMessage(Object messageKey, Object message) {
-	Thread t = new Thread(requestHandler);
-	Integer i = new Integer(t.hashCode());
-	String uniqueKey = i + "-" + messageKey;
+  boolean receiveMessage(Object messageKey, Object message) {
+    Thread t = new Thread(requestHandler);
+    Integer i = new Integer(t.hashCode());
+    String uniqueKey = i + "-" + messageKey;
 
-	messageQueueMsgs.put(uniqueKey, message);
-	messageQueueMsgs.put(i, uniqueKey);
-	messageQueueKeys.put(i, messageKey);
+    messageQueueMsgs.put(uniqueKey, message);
+    messageQueueMsgs.put(i, uniqueKey);
+    messageQueueKeys.put(i, messageKey);
 
-	if (requestHandler != null) {
-	    t.start();
-	    try { t.join(200); } catch (InterruptedException ie) { }
-	}
-
-	return true;
+    if (requestHandler != null) {
+      t.start();
+      try { t.join(200); } catch (InterruptedException ie) { }
     }
 
-    Object requestMessage(Object messageKey) {
-	Thread t = new Thread(requestHandler);
-	Integer i = new Integer(t.hashCode());
-	String uniqueKey = i + "-" + messageKey;
+    return true;
+  }
 
-	messageQueueMsgs.put(i, uniqueKey);
-	messageQueueKeys.put(i, messageKey);
+  Object requestMessage(Object messageKey) {
+    Thread t = new Thread(requestHandler);
+    Integer i = new Integer(t.hashCode());
+    String uniqueKey = i + "-" + messageKey;
 
-	if (requestHandler != null) {
-	    t.start();
-	    try { t.join(5000); } catch (InterruptedException ie) { }
-	    return messageQueueMsgs.get(uniqueKey);
-	} else return null;
-    }
-    // END: Server-side //////////////////////////////////////////////////////////
+    messageQueueMsgs.put(i, uniqueKey);
+    messageQueueKeys.put(i, messageKey);
 
-
-    public static void main(String args[]) throws UnknownHostException {
-	WVM.out.println("usage: java psl.worklets.WVM <wvmName>");
-	String rmiName = args.length == 0 ? "WVM" : args[0];
-	WVM wvm = new WVM(new Object(), null, rmiName);
-    }
+    if (requestHandler != null) {
+      t.start();
+      try { t.join(5000); } catch (InterruptedException ie) { }
+      return messageQueueMsgs.get(uniqueKey);
+    } else return null;
+  }
+  // END: Server-side //////////////////////////////////////////////////////////
 
 
-    // -------------- ADDED VARS AND FXNS TO MANAGE WORKLETJUNCTIONS --------------- //
+  public static void main(String args[]) throws UnknownHostException {
+    WVM.out.println("usage: java psl.worklets.WVM <wvmName>");
+    String rmiName = args.length == 0 ? "WVM" : args[0];
+    WVM wvm = new WVM(new Object(), null, rmiName);
+  }
 
-    private WVM_Stats _myStats = new WVM_Stats();
+
+  // -------------- ADDED VARS AND FXNS TO MANAGE WORKLETJUNCTIONS --------------- //
+
+  private WVM_Stats _myStats = new WVM_Stats();
+  
+  // register a junction to the WVM.
+  void registerJunction(WorkletJunction wj) {
+    _installedJunctions.put(wj.id(), wj);
+    _myStats.log("Added Junction: ", wj);
+    _myStats.accept();
+  }
+
+  // Get a reference to a certain worklet junction.
+  Vector getJunctions(WorkletID id) {
+    return (Vector)_installedJunctions.get(id);
+  }
+
+  // there are two remove workletJunction functions because 
+  // we can either remove 
+  // 1) a specific worklet junction
+  // 2) all junctions with a specific workletID (vector of junctions) or
+  boolean removeJunction(WorkletJunction wj) {
+    Object o = _installedJunctions.remove(wj.id(), wj);
     
-    // register a junction to the WVM.
-    void registerJunction(WorkletJunction wj) {
-	_installedJunctions.put(wj.id(), wj);
-	_myStats.log("Added Junction: ", wj);
-	_myStats.accept();
+    if (o != null) {
+      _myStats.log("Removal succesful: ", wj);
+      _myStats.remove();
+      return true;
+    } else { 
+      _myStats.log("Removal unsuccesful: ", wj);
+      return false;
+    }
+  }
+
+  boolean removeJunction(WorkletID wj_id) {
+    Object o = _installedJunctions.remove(wj_id);
+    
+    if (o != null) {
+      Vector v = (Vector)o;
+      for (int i = 0; i < v.size(); i++)
+        _myStats.remove();
+
+      _myStats.log("Removal of " + v.size() + " WorkletJunction(s) succesful: " + wj_id);
+
+      return true;
+
+    } else { 
+      _myStats.log("Removal unsuccesful: " + wj_id);
+      return false;
+    }
+  }
+  
+  void stats(){
+    _myStats.dumpStats();
+  }
+  
+  // -------------- ADDED CLASS AND FXNS TO GET WORKLETJUNCTION STATS --------------- //
+
+  /* WVM_Stats: keep track of the WVM stats.  Currently only keeps basic stats 
+  * on WorkletJunctions.
+  *
+  *
+  * TODO: 
+  * - add more capability and statistics
+  *
+  * NOTES: 
+  * - currently only keeps these stats:
+  *   > log of junction accepted and removed
+  *   > number of total junctions accepted and removed
+  * 
+  * - it could easily keep the same stats for a set of Worklets.
+  * 
+  * - to add worklets capability add a log() function specific for
+  * Worklets, add a printCurrentWorklets similar to the
+  * printCurrentJunctions, and add the Worklet specific info to the
+  * summary.  We might also want to keep the accepted and removed  
+  * number for worklets and worklet junctions separate. 
+  * 
+  * 
+  * 
+  */
+
+  private class WVM_Stats {
+    private Vector _wvmLog = new Vector();	// keeps a log of certain events
+    private int _accepted;			// total number of objects accepted
+    private int _removed;			// total number of objects removed
+
+    public WVM_Stats(){}
+
+    // add generic message to log
+    public void log(String message){
+      _wvmLog.addElement(new Date() + ": " + message);
     }
 
-    // Get a reference to a certain worklet junction.
-    Vector getJunctions(WorkletID id) {
-	return (Vector)_installedJunctions.get(id);
+    // add workletJunction specific message to the log.
+    public void log(String message, WorkletJunction wj){
+      _wvmLog.addElement(new Date() + ": " + message + wj + "." + wj.id() + ": " + wj.sstate());
     }
 
-    // there are two remove workletJunction functions because 
-    // we can either remove 
-    // 1) a specific worklet junction
-    // 2) all junctions with a specific workletID (vector of junctions) or
-    boolean removeJunction(WorkletJunction wj) {
-	Object o = _installedJunctions.remove(wj.id(), wj);
-	
-	if (o != null) {
-	    _myStats.log("Removal succesful: ", wj);
-	    _myStats.remove();
-	    return true;
-	} else { 
-	    _myStats.log("Removal unsuccesful: ", wj);
-	    return false;
-	}
+    // dump some stats about the WVM.
+    public void dumpStats(){
+      System.out.println("Printing WVM stats (" + new Date() + ")");
+      System.out.println();
+
+      printLog();
+      System.out.println();
+
+      printCurrentJunctions();
+      System.out.println();
+      
+      printSummary();
+      System.out.println();
     }
 
-    boolean removeJunction(WorkletID wj_id) {
-	Object o = _installedJunctions.remove(wj_id);
-	
-	if (o != null) {
-	    Vector v = (Vector)o;
-	    for (int i = 0; i < v.size(); i++)
-		_myStats.remove();
+    // print the current log.
+    private void printLog(){
+      Iterator itr = _wvmLog.iterator();
+      System.out.println("WVM log:");
+      while (itr.hasNext())
+        System.out.println("" + itr.next());
+    }
 
-	    _myStats.log("Removal of " + v.size() + " WorkletJunction(s) succesful: " + wj_id);
+    // print the current worklet junctions in the WVM.  We
+    // access the _installedJunctions private member in the WVM.
+    private void printCurrentJunctions(){
+      System.out.println("Printing current WVM Junctions: " +  "(" + new Date() + ")");	    
+      Set s = _installedJunctions.keySet();
+      Iterator setItr = s.iterator();
 
-	    return true;
+      while (setItr.hasNext()) {
+        // Print the WorkletID
+        WorkletID id = (WorkletID)setItr.next();
+        System.out.println("WorkletID: " + id + ":");
+        Vector v = (Vector)_installedJunctions.get(id);
+        
+        // Print the WorkletJunctions associated with this WorkletID
+        Iterator vecItr = v.iterator();
+        while (vecItr.hasNext()) {
+          WorkletJunction wj = (WorkletJunction)vecItr.next();
+          System.out.println("  " + wj + ": " + wj.sstate());
+        }
+      }
+    }
 
-	} else { 
-	    _myStats.log("Removal unsuccesful: " + wj_id);
-	    return false;
-	}
+    // print the summary
+    private void printSummary(){
+      System.out.println("Total accepted: " + _accepted);
+      System.out.println("Total removed: " + _removed);
+
+      // WorkletJunction specific summary
+      System.out.println("Total of " + _installedJunctions.size() + " WorkletID's and " 
+                         + _installedJunctions.sizeValues() + " WorkletJunction(s)");
     }
     
-    void stats(){
-	_myStats.dumpStats();
+    // Accept an object into the stats
+    public void accept(){
+      _accepted++;
     }
-    
-    // -------------- ADDED CLASS AND FXNS TO GET WORKLETJUNCTION STATS --------------- //
 
-    /* WVM_Stats: keep track of the WVM stats.  Currently only keeps basic stats 
-     * on WorkletJunctions.
-     *
-     *
-     * TODO: 
-     * - add more capability and statistics
-     *
-     * NOTES: 
-     * - currently only keeps these stats:
-     *   > log of junction accepted and removed
-     *   > number of total junctions accepted and removed
-     * 
-     * - it could easily keep the same stats for a set of Worklets.
-     * 
-     * - to add worklets capability add a log() function specific for
-     * Worklets, add a printCurrentWorklets similar to the
-     * printCurrentJunctions, and add the Worklet specific info to the
-     * summary.  We might also want to keep the accepted and removed  
-     * number for worklets and worklet junctions separate. 
-     * 
-     * 
-     * 
-     */
-
-    private class WVM_Stats {
-	private Vector _wvmLog = new Vector();	// keeps a log of certain events
-	private int _accepted;			// total number of objects accepted
-	private int _removed;			// total number of objects removed
-
-	public WVM_Stats(){}
-
-	// add generic message to log
-	public void log(String message){
-	    _wvmLog.addElement(new Date() + ": " + message);
-	}
-
-	// add workletJunction specific message to the log.
-	public void log(String message, WorkletJunction wj){
-	    _wvmLog.addElement(new Date() + ": " + message + wj + "." + wj.id() + ": " + wj.sstate());
-	}
-
-	// dump some stats about the WVM.
-	public void dumpStats(){
-	    System.out.println("Printing WVM stats (" + new Date() + ")");
-	    System.out.println();
-
-	    printLog();
-	    System.out.println();
-
-	    printCurrentJunctions();
-	    System.out.println();
-	    
-	    printSummary();
-	    System.out.println();
-	}
-
-	// print the current log.
- 	private void printLog(){
-	    Iterator itr = _wvmLog.iterator();
-	    System.out.println("WVM log:");
-	    while (itr.hasNext())
-		System.out.println("" + itr.next());
-	}
-
-	// print the current worklet junctions in the WVM.  We
-	// access the _installedJunctions private member in the WVM.
- 	private void printCurrentJunctions(){
-	    System.out.println("Printing current WVM Junctions: " +  "(" + new Date() + ")");	    
-		Set s = _installedJunctions.keySet();
-		Iterator setItr = s.iterator();
-
-		while (setItr.hasNext()) {
-		    // Print the WorkletID
-		    WorkletID id = (WorkletID)setItr.next();
-		    System.out.println("WorkletID: " + id + ":");
-		    Vector v = (Vector)_installedJunctions.get(id);
-		    
-		    // Print the WorkletJunctions associated with this WorkletID
-		    Iterator vecItr = v.iterator();
-		    while (vecItr.hasNext()) {
-			WorkletJunction wj = (WorkletJunction)vecItr.next();
-			System.out.println("  " + wj + ": " + wj.sstate());
-		    }
-		}
-	}
-
-	// print the summary
- 	private void printSummary(){
-	    System.out.println("Total accepted: " + _accepted);
-	    System.out.println("Total removed: " + _removed);
-
-	    // WorkletJunction specific summary
-	    System.out.println("Total of " + _installedJunctions.size() + " WorkletID's and " 
-			       + _installedJunctions.sizeValues() + " WorkletJunction(s)");
-	}
-	
-	// Accept an object into the stats
-	public void accept(){
-	    _accepted++;
-	}
-
-	// Remove an object from the stats
-	public void remove(){
-	    _removed++;
-	}
-
-	// Clear the wvm stats log
-	public void clearLog(){
-	    _wvmLog.clear();
-	}
+    // Remove an object from the stats
+    public void remove(){
+      _removed++;
     }
+
+    // Clear the wvm stats log
+    public void clearLog(){
+      _wvmLog.clear();
+    }
+  }
 }
