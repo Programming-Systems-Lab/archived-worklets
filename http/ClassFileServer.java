@@ -87,7 +87,7 @@ public class ClassFileServer extends ClassServer {
     if (default_codebase != null) {
       f = findFile(default_codebase, path);
       if (WVM.DEBUG(3)) WVM.out.println("findFile returned: " + f);
-      if (f != null && f.exists()) {
+      if (f != null && f.exists() && !f.isDirectory()) {
         WVM.out.println (f.getPath() + " found in default classpath");
         String default_codebaseDup = default_codebase.toLowerCase();
         if (f.isFile() && (default_codebaseDup.endsWith(".jar") || default_codebaseDup.endsWith(".zip"))) {
@@ -112,7 +112,7 @@ public class ClassFileServer extends ClassServer {
       // WVM.out.println("Classpath for classFileServer: " + cpItem);
       f = findFile (cpItem, path);
       if (WVM.DEBUG(3)) WVM.out.println("findFile returned: " + f);
-      if (f!= null && f.exists()) {
+      if (f!= null && f.exists() && !f.isDirectory()) {
         if (WVM.DEBUG(2)) WVM.out.println ("Path: " + f.getPath() + ", name: " + f.getName());
         String cpItemDup = cpItem.toLowerCase();        
         if (f.isFile() && (cpItemDup.endsWith(".jar") || cpItemDup.endsWith(".zip"))) {
