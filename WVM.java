@@ -109,6 +109,10 @@ public final class WVM extends Thread {
     return (transporter.toString());
   }
 
+  public int getPort() {
+    return (transporter._port);
+  }
+
   public static void main(String args[]) throws UnknownHostException {
     WVM.out.println("usage: java psl.worklets.WVM <wvmName>");
     String rmiName = args.length == 0 ? "WVM" : args[0];
