@@ -1,11 +1,11 @@
 /*
- * @(#)$Name$ $Date$
+ * @(#)$Id$ $Date$
  * 
  * Copyright (c) 2001: The Trustees of Columbia University in the City of New York.  All Rights Reserved
  * Copyright (c) 2001: @author Dan B. Phung
  *
  * CVS version control block - do not edit manually
- *  $Name$
+ *  $Id$
  *  $RCSfile$
  *  $Revision$
  *  $Date$
