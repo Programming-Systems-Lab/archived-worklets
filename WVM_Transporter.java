@@ -27,7 +27,8 @@ class WVM_Transporter extends Thread {
   private WVM_ClassLoader _loader;
   ClassFileServer _webserver;
   int _webPort;
-  boolean _isClassServer;
+  boolean _isClassServer;    private static final String PING_REQUEST = "Hi, I am pinging you :)";  private static final String PING_RESPONSE = "Ok, pinging you back!";  private static final String WORKLET_XFER = "Yo, I am sending a worklet";
+  private static final String WORKLET_RECV = "Yo, I got your worklet";
 
   WVM_Transporter(WVM wvm, String host, String name, int port) {
     WVM.out.println("Creating the sockets transporter layer for the WVM");
@@ -90,11 +91,13 @@ class WVM_Transporter extends Thread {
     
     MAIN_LOOP: while (_isActive) {
       WVM.out.println("    ready to accept worklets");
-      try {
+      Socket s;
+      ObjectOutputStream oos;
+      ObjectInputStream ois;
+          try {
         if (!_isActive) shutdown();
-        Socket s = _socket.accept();
-        WVM.out.println("    received a worklet");
-        ObjectInputStream ois = new ObjectInputStream(s.getInputStream()) {
+        s = _socket.accept();
+        ois = new ObjectInputStream(s.getInputStream()) {
           protected Class resolveClass(ObjectStreamClass v) throws IOException, ClassNotFoundException {
             Class c = Class.forName(v.getName(), true, _loader);
             // WVM.out.println("In custom ObjectInputStream, trying to resolve class: " + c);
@@ -102,6 +105,16 @@ class WVM_Transporter extends Thread {
           }
         };
 
+        String requestType = ois.readUTF();        if (requestType.equals(PING_REQUEST)) {
+          // ok, this is a ping request
+          WVM.out.println("    received a ping request");          oos = new ObjectOutputStream(s.getOutputStream());          oos.writeUTF(PING_RESPONSE);          oos.flush();          oos.close();          ois.close();          s.close();
+          continue MAIN_LOOP;
+        } else if (! requestType.equals(WORKLET_XFER)) {          // what kinda request is this anyway?
+          WVM.out.println("    received something random!");
+          oos.close();          ois.close();          s.close();
+          continue MAIN_LOOP;
+        }
+        WVM.out.println("    received a worklet");
         classHashSet = new HashSet();
 
         String rHost = ois.readUTF();
@@ -134,10 +147,7 @@ class WVM_Transporter extends Thread {
           {
             // send out BytecodeRetrieverWJ w/ a Worklet to retrieve all URLLoaded classes
             // new BytecodeRetrieval(classHashSet, _wvm, _host, _name, _port, rHost, rName, rPort);
-          }
-          ois.close();
-          s.close();
-        } catch (Exception e) {
+          }                    // Now, send acknowledgement back to sender WVM          oos = new ObjectOutputStream(s.getOutputStream());          oos.writeUTF(WORKLET_RECV);          oos.flush();        } catch (Exception e) {
           WVM.out.println("This is BAD!");
           e.printStackTrace();
           System.exit(0);
@@ -151,6 +161,8 @@ class WVM_Transporter extends Thread {
       } catch (IOException e) {
         WVM.out.println("IOException in Worklet receive loop, e: " + e.getMessage());
         e.printStackTrace();
+      } finally {        if (ois != null) ois.close();
+        if (oos != null) oos.close();        if (s != null) s.close();
       }
       WVM.out.println();
     }
@@ -182,11 +194,14 @@ class WVM_Transporter extends Thread {
   
   boolean sendWorklet(Worklet wkl, WorkletJunction wj) {
     String targetHost = wj._host;
-    int targetPort = wj._port;
-    try {
+    int targetPort = wj._port;        boolean transmissionComplete = false;    
+    Socket s;
+    ObjectOutputStream oos;
+    ObjectInputStream ois;
+        try {
       WVM.out.println("  --  Sending worklet thru sockets");
-      Socket s = new Socket(targetHost, targetPort);
-      ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
+      s = new Socket(targetHost, targetPort);
+      oos = new ObjectOutputStream(s.getOutputStream());
       oos.writeUTF(_host);
       oos.writeUTF(_name);
       oos.writeInt(_port);
@@ -232,13 +247,11 @@ class WVM_Transporter extends Thread {
 
       // TODO: set up the BAG-MULTISET in the ClassFileServer so that the 
       // incoming BytecodeRetrieverWJ can get the data it needs
-      oos.writeObject(wkl);
+      oos.writeObject(wkl);      oos.flush();
 
       // Receive ACK from the target WVM
-      ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
-      boolean transmissionComplete = ois.readBoolean();
-      oos.close();
-      return transmissionComplete;
+      ois = new ObjectInputStream(s.getInputStream());
+      transmissionComplete = ois.readBoolean();
     } catch (InvalidClassException e) {
       WVM.out.println("InvalidClassException in sendWorklet, e: " + e.getMessage());
       e.printStackTrace();
@@ -255,8 +268,27 @@ class WVM_Transporter extends Thread {
       WVM.out.println("IOException in sendWorklet, e: " + e.getMessage());
       e.printStackTrace();
     } finally {
-      return false;
+      if (ois != null) ois.close();
+      if (oos != null) oos.close();      if (s != null) s.close();
+      return transmissionComplete;
     }
+  }    protected boolean ping(String wvmURL) {
+    // 2-do .. well, not really  }    protected boolean ping(String host, int port) {
+    // 2-do: really!    boolean transmissionComplete = false;    
+    Socket s;
+    ObjectOutputStream oos;
+    ObjectInputStream ois;
+        try {
+      WVM.out.println("  --  pinging peer WVM thru sockets");
+      s = new Socket(host, port);
+       // Send request to the peer WVM
+      oos = new ObjectOutputStream(s.getOutputStream());
+      oos.writeUTF(PING_REQUEST);      // Receive ACK from the peer WVM
+      ois = new ObjectInputStream(s.getInputStream());
+      transmissionComplete = ois.readUTF().equals(PING_RESPONSE);    } finally {
+      if (ois != null) ois.close();
+      if (oos != null) oos.close();      if (s != null) s.close();
+      return transmissionComplete;    }
   }
 
 }
