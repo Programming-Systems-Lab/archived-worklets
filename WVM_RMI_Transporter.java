@@ -221,8 +221,9 @@ class WVM_RMI_Transporter extends WVM_Transporter {
     String rHost = wa.host;
     String rName = wa.name;
     int rPort = wa.port;
-    if (rmiService) return rtu.getMessage(messageKey, rHost, rName);
-    else return getMessage(messageKey, rHost, rPort);
+    Object message = null;
+    if (rmiService) message = rtu.getMessage(messageKey, rHost, rName);
+    return message!=null ? message : getMessage(messageKey, rHost, rPort);
   }
   // END: Client-side /////////////////////////////////////////////////////////
 
@@ -308,15 +309,15 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         wvmHost.receiveWorklet(wkl);
         return true;
       } catch (NotBoundException e) {
-        WVM.out.println("NotBoundException: " + e.getMessage());
+        WVM.out.println("NotBoundException: " + e);
         // e.printStackTrace();
-        throw(new RemoteException(e.getMessage()));
+        throw(new RemoteException("" + e));
       } catch (MalformedURLException e) {
-        WVM.out.println("MalformedURLException: " + e.getMessage());
+        WVM.out.println("MalformedURLException: " + e);
         // e.printStackTrace();
-        throw(new RemoteException(e.getMessage()));
+        throw(new RemoteException("" + e));
       } catch (RemoteException e) {
-        WVM.out.println("RemoteException: " + e.getMessage());
+        WVM.out.println("RemoteException: " + e);
         // e.printStackTrace();
         throw(e);
       }
@@ -364,10 +365,10 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         WVM.out.println("  --  pinging peer WVM thru RMI: " + rName + "@" + rHost);
         return ((WVM_Host) Naming.lookup("//" + rHost + ":" + _port + "/" + rName)).ping();
       } catch (NotBoundException e) {
-        WVM.out.println("NotBoundException: " + e.getMessage());
+        WVM.out.println("NotBoundException: " + e);
         // e.printStackTrace();
       } catch (MalformedURLException e) {
-        WVM.out.println("MalformedURLException: " + e.getMessage());
+        WVM.out.println("MalformedURLException: " + e);
         // e.printStackTrace();
       } catch (RemoteException rmie) {
         WVM.out.println("RemoteException: " + rmie);
@@ -379,10 +380,10 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         WVM.out.println("  --  sending a message to a peer WVM thru RMI: " + rName + "@" + rHost);
         return ((WVM_Host) Naming.lookup("//" + rHost + ":" + _port + "/" + rName)).receiveMessage(messageKey, message);
       } catch (NotBoundException e) {
-        WVM.out.println("NotBoundException: " + e.getMessage());
+        WVM.out.println("NotBoundException: " + e);
         // e.printStackTrace();
       } catch (MalformedURLException e) {
-        WVM.out.println("MalformedURLException: " + e.getMessage());
+        WVM.out.println("MalformedURLException: " + e);
         // e.printStackTrace();
       } catch (RemoteException rmie) {
         WVM.out.println("RemoteException: " + rmie);
@@ -394,10 +395,10 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         WVM.out.println("  --  getting a message from a peer WVM thru RMI: " + rName + "@" + rHost);
         return ((WVM_Host) Naming.lookup("//" + rHost + ":" + _port + "/" + rName)).requestMessage(messageKey);
       } catch (NotBoundException e) {
-        WVM.out.println("NotBoundException: " + e.getMessage());
+        WVM.out.println("NotBoundException: " + e);
         // e.printStackTrace();
       } catch (MalformedURLException e) {
-        WVM.out.println("MalformedURLException: " + e.getMessage());
+        WVM.out.println("MalformedURLException: " + e);
         // e.printStackTrace();
       } catch (RemoteException rmie) {
         WVM.out.println("RemoteException: " + rmie);

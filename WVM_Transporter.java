@@ -79,7 +79,14 @@ class WVM_Transporter extends Thread {
     }
 
     _wvm = wvm;
-    _loader = null;
+    Vector urlsVec = _webserver.getAliases();
+    URL urls[] = new URL[urlsVec.size()];
+    for (int i=0; i<urls.length; i++) {
+      try {
+        urls[i] = new URL("" + urlsVec.elementAt(i));
+      } catch (MalformedURLException murle) { }
+    }
+    _loader = new WVM_ClassLoader_New(urls);
   }
 
   void shutdown() {
@@ -112,8 +119,9 @@ class WVM_Transporter extends Thread {
         s = _socket.accept();
         ois = new ObjectInputStream(s.getInputStream()) {
           protected Class resolveClass(ObjectStreamClass v) throws IOException, ClassNotFoundException {
-            Class c = Class.forName(v.getName(), true, _loader);
-            WVM.out.println("In custom ObjectInputStream, trying to resolve class: " + c);
+            String name = v.getName();
+            Class c = Class.forName(name, true, _loader);
+            // WVM.out.println("In custom ObjectInputStream, trying to resolve class: " + c);
             return ( (c == null) ? super.resolveClass(v) : c );
           }
         };
@@ -406,10 +414,10 @@ class WVM_Transporter extends Thread {
       transmissionComplete = ois.readUTF().equals(SENDMSG_RESPONSE);
 
     } catch (UnknownHostException uhe) {
-      WVM.out.println("UnknownHostException in ping, uhe: " + uhe);
+      WVM.out.println("UnknownHostException in sendMessage, uhe: " + uhe);
       // e.printStackTrace();
     } catch (IOException ioe) {
-      WVM.out.println("IOException in ping, ioe: " + ioe);
+      WVM.out.println("IOException in sendMessage, ioe: " + ioe);
       // e.printStackTrace();
     } finally {
       try {
@@ -417,6 +425,8 @@ class WVM_Transporter extends Thread {
         if (oos != null) oos.close();
         if (s != null) s.close();
       } catch (IOException ioe) { }
+      if (transmissionComplete) WVM.out.println("  --  SUCCESSFUL: sending message to peer WVM thru sockets: " + host + ":" + port);
+      else WVM.out.println("  --  FAILURE: sending message to peer WVM thru sockets: " + host + ":" + port);
       return transmissionComplete;
     }
   }
@@ -458,6 +468,8 @@ class WVM_Transporter extends Thread {
         if (oos != null) oos.close();
         if (s != null) s.close();
       } catch (IOException ioe) { }
+      if (transmissionComplete) WVM.out.println("  --  SUCCESSFUL: getting message from peer WVM thru sockets: " + host + ":" + port);
+      else WVM.out.println("  --  FAILURE: getting message from peer WVM thru sockets: " + host + ":" + port);
       return transmissionComplete ? message : null;
     }
   }
