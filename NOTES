@@ -1,0 +1,6 @@
+04 March 2001
+=============
+  - Registry creation works beautifylly, even with
+    exiting WVM [Registry] or any other WVM starts
+    the Registry before the "nominated" WVM gets
+    ready.

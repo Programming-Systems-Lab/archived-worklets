@@ -1,0 +1,35 @@
+07 March 2001
+=============
+  - kill -9 does not let the shutdown thread execute, so
+    the next Registry will not be nominated ... in such a
+    case
+  - need security mechanism so that only those worklets that
+    can present a known set of credentials are allowed to
+    execute
+
+05 March 2001
+=============
+  - Worklets making persistent changes to the target site.
+
+04 March 2001
+=============
+  - RTU should try to [re]-establish RMI registration
+    + possibly [re]-create RMI Registry
+    + possibly [re]-register with RMI Registry
+
+04 March 2001
+=============
+  - modify ClassFileServer to "spy" on outgoing Class files
+  - subclass URLClassLoader to "cache" URL-Loaded Class files,
+    and dump to local file system
+
+03 March 2001
+=============
+  - add java.rmi.registry.LocateRegistry                              ;)
+    + first app creates registry                                      ;)
+      - others getRegistry() and work from there                      ;)
+      - when first app unregisters, it "notifies" other apps          ;)
+      - one of the other apps then creates registry                   ;)
+    + if registry exists, join                                        ;)
+      - if registry sends "notification", re-join                     ;)
+        + if unsuccessful after 3 attempts, create registry
