@@ -52,11 +52,12 @@ class WVM_RMI_Transporter extends WVM_Transporter {
 
   void setupRegistry() {
     // Create RMI Registry
-    WVM.out.println("Creating RMI Registry: " + _host + ":" + _port);
     try {
       _port = Integer.parseInt(System.getProperty("WVM_RMI_PORT"));
     } catch (NumberFormatException nfe) {
       _port = WVM_Host.PORT;
+    } finally {
+      WVM.out.println("Creating RMI Registry: " + _host + ":" + _port);
     }
 
     try {
