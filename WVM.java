@@ -668,7 +668,10 @@ public final class WVM extends Thread {
      * @param wj: related {@link WorkletJunction}
      */
     public void log(String message, WorkletJunction wj){
-      _wvmLog.addElement(new Date() + ": " + message + wj + "." + wj.id() + ": " + wj.sstate());
+      if (wj._junctionPlanner != null)
+	_wvmLog.addElement(new Date() + ": " + message + wj + "." + wj.id() + ": " + wj.sstate());
+      else
+	_wvmLog.addElement(new Date() + ": " + message + wj + "." + wj.id());
     }
 
     /** Prints some stats about the WVM */
