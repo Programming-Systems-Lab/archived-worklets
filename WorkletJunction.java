@@ -17,9 +17,11 @@ public abstract class WorkletJunction implements Serializable {
   protected String _name;
   protected int _port;
 
-  protected Object _system;
-  protected WVM _wvm;
+  protected transient Object _system;
+  protected transient WVM _wvm;
 
+  protected URL _originClassServer = null; // THIS MUST BE SET @ CREATION TIME!
+  protected Worklet _worklet;
   protected WorkletJunction _originJunction;
   protected Hashtable _payload;
 

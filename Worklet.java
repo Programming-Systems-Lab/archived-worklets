@@ -27,19 +27,25 @@ public final class Worklet implements Runnable, Serializable {
   private WorkletJunction _originJunction;
   private WorkletJunction _currentJunction;
 
+  private final Vector _route = new Vector();
   private final Vector _junctions = new Vector();
   private final Vector _wjClasses = new Vector();
 
   public Worklet(WorkletJunction _oj) {
     _originJunction = _oj;
-    if (_oj != null) _wjClasses.add(_oj.getClass());
+    if (_oj != null) {
+      _wjClasses.add(_oj.getClass());
+      _oj._worklet = this;
+    }
   }
 
   public void addJunction(WorkletJunction _wj) {
+    if (_wj == null) return;
     synchronized(_junctions) {
       _junctions.addElement(_wj);
       _wjClasses.add(_wj.getClass());
       _wj.setOriginWorkletJunction(_originJunction);
+      _wj._worklet = this;
     }
   }
   
@@ -66,10 +72,7 @@ public final class Worklet implements Runnable, Serializable {
       _currentJunction.execute();
 
       if (!WVM.NO_BYTECODE_RETRIEVAL_WORKLET && retrieveBytecode && !(_currentJunction instanceof psl.worklets.TargetWJ)) {
-        // WVM.out.println("send out BytecodeRetrieverWJ w/ a Worklet to retrieve all URLLoaded classes");
-        new BytecodeRetrieval(classHashSet, _wvm,
-          _wvm.transporter._host, _wvm.transporter._name, _wvm.transporter._port,
-          _lHost, _lName, _lPort);
+        // new BytecodeRetrieval(classHashSet, _wvm, _wvm.transporter._host, _wvm.transporter._name, _wvm.transporter._port, _lHost, _lName, _lPort);
       }
 
       if (_junctions.isEmpty()) {
@@ -85,6 +88,7 @@ public final class Worklet implements Runnable, Serializable {
     synchronized (_junctions) {
       _currentJunction = (WorkletJunction) _junctions.firstElement();
       _junctions.removeElement(_currentJunction);
+      _junctions.trimToSize();
     }
 
     _lHost = wvm.transporter._host;
@@ -99,6 +103,7 @@ public final class Worklet implements Runnable, Serializable {
     synchronized (_junctions) {
       _currentJunction = (WorkletJunction) _junctions.firstElement();
       _junctions.removeElement(_currentJunction);
+      _junctions.trimToSize();
     }
 
     _lHost = _wvm.transporter._host;

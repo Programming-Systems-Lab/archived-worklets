@@ -1,3 +1,42 @@
+21 June 2001
+============
+  - set the 'origin' site's WebServer URL in each created WorkletJunction
+  - get rid of last-host, last-name, last-port info .. or put it to
+    better use, e.g. use this as well as last-WebServer as part of
+    the 'route' of the Worklet
+  - in Worklet, merge 'deployWorklet' and 'moveToNextJunction' ... 
+    this might force us to have to pass the WVM as a parameter
+    to the Worklet Constructor ... this will help in setting
+    the 'origin' site information in all 'added' WorkletJunctions
+  - get rid of 'classHashSet' from Worklet, and also the other
+    hashSet used to keep track of the classes loaded dynamically
+
+20 June 2001
+============
+  - Incrementally 'save' the route of the Worklet as it passes
+    through each target host .. this can help in identifying
+    all surviving nodes if parts of the system were to go down
+
+19 June 2001
+============
+  - Every workletJunction carries local info:
+    + original site codebase
+    + received-from site codebase
+    + it's received-from site codebase
+
+19 June 2001
+============
+  - WVM_RMI_Transporter: send modified codebase 4 forwarded worklets  ;)
+  - see if RMI runtime can use the WVM_ClassLoader instead of the 
+    default RMI_ClassLoader
+  - WVM_ClassLoader: test bytecode extraction for classes loaded 
+    remotely                                                          ;)
+  - Major modification of WVM_ClassLoader:
+    + instead of subclassing URL_ClassLoader, we can subclass
+      ClassLoader directly .. so, now we'll have to implement the
+      receiver side of the http pull too, this time on the 
+      WVM_ClassLoader though!                                         ;)
+
 05 June 2001
 ============
   - public static final int java.rmi.server.ObjID.Registry_ID = 0;
@@ -5,7 +44,7 @@
   - to change this, need to:
     + negatively increasing ObjID numbers for all registry instances
     + look at the RMI runtime system to see if can reasonably well
-      implement 
+      implement efficient lookup of rmi registries @ runtime
 
 04 May 2001
 ===========

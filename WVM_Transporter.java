@@ -71,6 +71,7 @@ class WVM_Transporter extends Thread {
   }
 
   void shutdown() {
+    if (_webserver != null) _webserver.shutdown();
     _isActive = false;
     try {
       _socket.close();
@@ -132,10 +133,10 @@ class WVM_Transporter extends Thread {
           // HTTP server served up to this WVM
           {
             // send out BytecodeRetrieverWJ w/ a Worklet to retrieve all URLLoaded classes
-            new BytecodeRetrieval(classHashSet, _wvm,
-              _host, _name, _port,
-              rHost, rName, rPort);
+            // new BytecodeRetrieval(classHashSet, _wvm, _host, _name, _port, rHost, rName, rPort);
           }
+          ois.close();
+          s.close();
         } catch (Exception e) {
           WVM.out.println("This is BAD!");
           e.printStackTrace();
@@ -146,7 +147,7 @@ class WVM_Transporter extends Thread {
         wkl.retrieveBytecode = true;
         _wvm.installWorklet(wkl);
       } catch (SocketException e) {
-        WVM.out.println("SocketException e: " + e.getMessage());
+        WVM.out.println("WVM Socket died e: " + e.getMessage());
       } catch (IOException e) {
         WVM.out.println("IOException in Worklet receive loop, e: " + e.getMessage());
         e.printStackTrace();
@@ -169,11 +170,11 @@ class WVM_Transporter extends Thread {
       }
     }
 
-    urlsVec = new Vector(new HashSet(urlsVec));
+    // urlsVec = new Vector(new HashSet(urlsVec));
     URL urls[] = new URL[urlsVec.size()];
     urlsVec.toArray(urls);
     if (_loader == null) {
-      _loader = new WVM_ClassLoader(urls);
+      _loader = new WVM_ClassLoader_New(urls);
     } else {
       _loader.addCodebase(urls);
     }
@@ -200,15 +201,30 @@ class WVM_Transporter extends Thread {
           Class c = (Class) e.nextElement();
           ClassLoader cl = c.getClassLoader();
           cName = c.getName();
+          /* Sending multiple codebases: 19 June 2001 - gskc
           if (sysCll == cl) {
             codebase = "http://" + _host + ":" + _webPort + "/";
             // WVM.out.println("class: " + cName + ", codebase: " + codebase);
           } else {
             URL url = cl.getResource(cName.replace('.', '/') + ".class");
             codebase = url.getProtocol() + "://" + url.getHost() + ":" + url.getPort() + "/";
-            WVM.out.println("class: " + cName + ", codebase: " + codebase);
+            // WVM.out.println("class: " + cName + ", codebase: " + codebase);
           }
-          // WVM.out.println("codebase: " + codebase);
+          */
+
+          codebase = "http://" + _host + ":" + _webPort + "/";
+          if (sysCll != cl) {
+            // This class was originally loaded from a remote server
+            URL url = cl.getResource(cName.replace('.', '/') + ".class");
+            if (url != null) {
+              // append remote http classServer to the 'local' codebase
+              codebase += " " + url.getProtocol() + "://" + url.getHost() + ":" + url.getPort() + "/";
+            } else {
+              WVM.out.println("mySource unavailable, sending codebase: " + codebase);
+            }
+          }
+          
+          // WVM.out.println("codebase of workletJunction: " + codebase);
           oos.writeUTF(cName);
           oos.writeUTF(codebase);
         }

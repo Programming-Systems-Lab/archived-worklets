@@ -41,6 +41,8 @@ class WVM_ClassLoader extends URLClassLoader {
     }
 
     try {
+      // here, we're using the given functionality of URLClassLoader 
+      // to automatically download the bytecode for the specified class
       Class c = (Class) super.findClass(name);
       if (hs != null) {
         hs.add(name);

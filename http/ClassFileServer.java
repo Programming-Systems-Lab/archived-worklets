@@ -84,17 +84,12 @@ public class ClassFileServer extends ClassServer {
     
     // WVM.out.println ("Looking for CLASS: " + path);
 
-    // retrieve previously-cached bytecode: added Gskc @ 21March2001
-    if (bytecodeCache.containsKey(path)) {
-      // WVM.out.println("Serving cached bytecode for class: " + path);
-      return ((byte []) bytecodeCache.get(path));
-    }
-    
     if (default_codebase != null) {
       f = findFile(default_codebase, path);
       if (f != null && f.exists()) {
         // WVM.out.println (f.getPath() + " found in default classpath");
-        if (f.isFile() && (default_codebase.endsWith(".jar") || default_codebase.endsWith(".zip"))) {
+        String default_codebaseDup = default_codebase.toLowerCase();
+        if (f.isFile() && (default_codebaseDup.endsWith(".jar") || default_codebaseDup.endsWith(".zip"))) {
           bytecodes = jarExtract(f, path);
           if (bytecodes != null) {
             return bytecodes;
@@ -115,10 +110,10 @@ public class ClassFileServer extends ClassServer {
       String cpItem = (String) iter.next();
       // WVM.out.println("Classpath for classFileServer: " + cpItem);
       f = findFile (cpItem, path);
-      // WVM.out.println (f.getPath());
       if (f!= null && f.exists()) {
-        // WVM.out.println (f.getName());
-        if (f.isFile() && (cpItem.endsWith(".jar") || cpItem.endsWith(".zip"))) {
+        // WVM.out.println ("Path: " + f.getPath() + ", name: " + f.getName());
+        String cpItemDup = cpItem.toLowerCase();        
+        if (f.isFile() && (cpItemDup.endsWith(".jar") || cpItemDup.endsWith(".zip"))) {
           bytecodes = jarExtract(f, path);
           if (bytecodes != null) {
             return bytecodes;

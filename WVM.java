@@ -20,6 +20,10 @@ public final class WVM extends Thread {
   private final Vector _installedWorklets = new Vector();
 
   public static boolean NO_BYTECODE_RETRIEVAL_WORKLET = false;
+  public final static String time() {
+    Calendar c = new GregorianCalendar();
+    return ("@ " + (1000 + c.get(Calendar.SECOND))%1000 + ":" + (1000 + c.get(Calendar.MILLISECOND))%1000 + " - ");
+  }
 
   public WVM(Object system) {
     this(system, null, "WVM");
@@ -108,7 +112,7 @@ public final class WVM extends Thread {
   public static void main(String args[]) throws UnknownHostException {
     WVM.out.println("usage: java psl.worklets.WVM <wvmName>");
     String rmiName = args.length == 0 ? "WVM" : args[0];
-    WVM wvm = new WVM(new Object(), InetAddress.getLocalHost().getHostAddress(), rmiName);
+    WVM wvm = new WVM(new Object(), null, rmiName);
   }
 
 }

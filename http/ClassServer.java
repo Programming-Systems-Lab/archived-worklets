@@ -81,8 +81,20 @@ public abstract class ClassServer implements Runnable {
    * @exception IOException if error occurs reading the class
    */
   public abstract byte[] getBytes(String path) throws IOException, ClassNotFoundException;
-  public static Hashtable bytecodeCache = new Hashtable();
-    
+  // Will employ WorkgroupCache module instead of a hashtable
+  private static final Hashtable bytecodeCache = new Hashtable();
+  public static void put(String name, byte[] bytecode) {
+    if (! bytecodeCache.containsKey(name)) {
+      bytecodeCache.put(name, bytecode);
+    }
+  }
+  public static byte[] get(String name) {
+    return ((byte[]) bytecodeCache.get(name));
+  }
+  public static boolean containsKey(String name) {
+    return (bytecodeCache.containsKey(name));
+  }
+      
   /**
    * The "listen" thread that accepts a connection to the
    * server, parses the header to obtain the class file name
@@ -108,20 +120,26 @@ public abstract class ClassServer implements Runnable {
         // get path to class file from header
         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         String path = getPath(in);
+
+        // WVM.out.println("Remote port: " + socket.getPort());
         // retrieve bytecodes
-        byte[] bytecodes = getBytes(path);
-        WVM.out.println("Retrieved bytecodes: " + bytecodes.length);
-
-        // cache the bytecodes to be sent out: added Gskc @ 21March2001
-        if (!bytecodeCache.containsKey(path)) {
-          // WVM.out.println("Caching bytecode for class: " + path);
-          bytecodeCache.put(path, bytecodes);
+        byte[] bytecodes = null;
+        if (containsKey(path)) {
+          bytecodes = get(path);
+          WVM.out.println(" + + + Serving cached bytecode for class: " + path);
+        } else {
+          // retrieve bytecodes from the file system
+          bytecodes = getBytes(path);
+          // cache the bytecodes to be sent out
+          put(path, bytecodes);
+          WVM.out.println(" + + + Caching bytecode for class: " + path);
         }
+        // WVM.out.println("Retrieved bytecodes: " + bytecodes.length);
 
-        // okay, the bytecode is definitely available locally
-        // TODO: update the BAG-MULTISET for the http client
+        // NOT RELEVANT ANY MORE: okay, the bytecode is definitely available locally
+        // NOT RELEVANT ANY MORE: TODO: update the BAG-MULTISET for the http client
         // InetAddress ip = socket.getInetAddress();
-        int port = socket.getPort();
+        // int port = socket.getPort();
         // WVM.out.println("ip: " + ip);
         // WVM.out.println("port: " + port);
         // this will pose a problem: how do we figure out which process
@@ -138,7 +156,7 @@ public abstract class ClassServer implements Runnable {
           out.writeBytes("Content-Type: application/java\r\n\r\n");
           out.write(bytecodes);
           out.flush();
-          // WVM.out.println("Wrote : " + path + " out to http client");
+          // WVM.out.println(WVM.time() + " Wrote: " + path + " out to http client: " + bytecodes.length);
         } catch (IOException ie) {
           return;
         }
@@ -154,9 +172,7 @@ public abstract class ClassServer implements Runnable {
       WVM.out.println("error writing response: " + ex.getMessage());
       ex.printStackTrace();
     } finally {
-      try {
-        socket.close();
-      } catch (IOException e) { }
+      try { socket.close(); } catch (IOException e) { e.printStackTrace(); }
     }
   }
       
@@ -164,6 +180,7 @@ public abstract class ClassServer implements Runnable {
     WVM.out.println ("Shutting down Class Server ...");
     try {
       server.close();
+      server = null;
     } catch (IOException e) { }
     WVM.out.println ("Class Server shut down");
   }
@@ -181,7 +198,7 @@ public abstract class ClassServer implements Runnable {
    */
   private static String getPath(BufferedReader in) throws IOException {
     String line = in.readLine();
-    WVM.out.println(" + + + request is: " + line);
+    // WVM.out.println(" + + + request is: " + line);
     String path = "";
     // extract class from GET line
     if (line.startsWith("GET /")) {

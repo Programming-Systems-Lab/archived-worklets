@@ -33,6 +33,7 @@ class WVM_RMI_Transporter extends WVM_Transporter {
   WVM_RMI_Transporter(WVM wvm, String host, String name, int port) {
     // start the basic sockets transporter layer
     super(wvm, host, name, port);
+    if (true) return; // COMMENT
     creation = new Date();
     
     WVM.out.println("Creating the RMI transporter layer for the WVM");
@@ -87,7 +88,7 @@ class WVM_RMI_Transporter extends WVM_Transporter {
 
   void shutdown() {
     // shut down communications
-    rtu.shutdown();
+    if (rtu != null) rtu.shutdown();
 
     // shut down RMIRegistry
     try {
@@ -126,6 +127,8 @@ class WVM_RMI_Transporter extends WVM_Transporter {
       WVM.out.println("RemoteException: " + e.getMessage());
       e.printStackTrace();
     }
+    
+    super.shutdown();
   }
   
   void sendWorklet(Worklet wkl, WorkletJunction wj) {
