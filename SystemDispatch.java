@@ -19,7 +19,7 @@ public class SystemDispatch implements Serializable {
   }
   private SystemDispatch(String args[]) {
     if (args.length != 4) {
-      System.out.println("usage: java SystemDispatch <App> <rHost> <rName> <rPort>");
+      WVM.out.println("usage: java SystemDispatch <App> <rHost> <rName> <rPort>");
       System.exit(0);
     }
 
@@ -35,14 +35,14 @@ public class SystemDispatch implements Serializable {
       Worklet wkl = new Worklet(null);
       wkl.addJunction(new WorkletJunction(rHost, rName, rPort) {
         public void execute() {
-          System.out.println("\t --- Totally New Component ---");
+          WVM.out.println("\t --- Totally New Component ---");
           try {
             appClass.newInstance();
           } catch (InstantiationException e) {
-            System.out.println("Exception: " + e.getMessage());
+            WVM.out.println("Exception: " + e.getMessage());
             e.printStackTrace();
           } catch (IllegalAccessException e) {
-            System.out.println("Exception: " + e.getMessage());
+            WVM.out.println("Exception: " + e.getMessage());
             e.printStackTrace();
           }
         }
@@ -50,11 +50,11 @@ public class SystemDispatch implements Serializable {
       wkl.deployWorklet(wvm);
 
     } catch (UnknownHostException e) {
-      System.out.println("Exception: " + e.getMessage());
+      WVM.out.println("Exception: " + e.getMessage());
       e.printStackTrace();
       System.exit(0);
     } catch (ClassNotFoundException e) {
-      System.out.println("Exception: " + e.getMessage());
+      WVM.out.println("Exception: " + e.getMessage());
       e.printStackTrace();
       System.exit(0);
     } 

@@ -1,4 +1,4 @@
-// package psl.worklets;
+package psl.worklets;
 
 /**
  *
@@ -10,6 +10,7 @@
 
 
 import java.io.*;
+import java.net.*;
 import java.awt.*;
 import javax.swing.*;
 import java.awt.event.*;
@@ -27,42 +28,67 @@ public class WKL_Demo_Sender extends JFrame {
   }
 
   private JFrame mainFrame;
-  private JPanel mainPanel;
+	private JPanel mainPanel;
   private WKL_Demo_Sender() {
     super("Worklets Sender");
     mainFrame = this;
-    setSize(400, 400);
+    setSize(450, 350);
     getContentPane().add(mainPanel = new JPanel(new BorderLayout(), true));
-    setupGUI();
+    setupSD();
     startWVM();
+    setupGUI();
+  	sd.shutdown();
   }
 
-  private PrintStream out;
   private StartupDialog sd;
-  private void setupGUI() {
+	private PrintStream out;
+  private void setupSD() {
     sd = new StartupDialog(this);
-    out = sd.out;
+		out = sd.out;
   }
 
+	private WVM wvm;
   private void startWVM() {
     out.print("Starting WVM");
     try {
-      for (int i=0; i<2; i++) {
-        out.println(".");
-        Thread.currentThread().sleep(5000);
-      }
-    } catch (InterruptedException e) { }
-		out.print("Can close now");
-    sd.shutdown();
+			WVM.out = out;
+			wvm = new WVM(this, InetAddress.getLocalHost().getHostAddress(), "WKL_Demo_Sender");
+		} catch (UnknownHostException e) {
+		}
   }
+	
+	private void setupGUI() {
+  	JTabbedPane tabbedPane = new JTabbedPane();
+		JPanel ctrlPanel, logPanel;
+		tabbedPane.addTab("", new ImageIcon("images/start.gif"), ctrlPanel = new JPanel(new BorderLayout()), "Control Panel");
+		tabbedPane.addTab("", new ImageIcon("images/logs.gif"), logPanel = new JPanel(new BorderLayout()), "Logs");
+		mainPanel.add(tabbedPane);
+
+		// Control panel
+		ctrlPanel.add(new JButton("a button in the control panel"));
+
+		// Log panel
+		final JTextArea logArea = new JTextArea("Logging area", 20, 40);
+    logArea.setForeground(Color.white);
+    logArea.setEditable(false);
+    JScrollPane jsp;
+    logArea.setBackground(new Color(22, 106, 175));
+		JLabel labelLogs;
+		logPanel.add(labelLogs = new JLabel("Logs"), BorderLayout.NORTH);
+		labelLogs.setFont(new Font("Dialog", Font.BOLD, 16));
+		logPanel.add(jsp = new JScrollPane(logArea), BorderLayout.CENTER);
+		JButton clearLogs;
+		logPanel.add(clearLogs = new JButton("Clear logs"), BorderLayout.SOUTH);
+		clearLogs.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent ae) {
+				logArea.setText("");
+			}
+		});
+	}
 
 }
 
 class StartupDialog extends JDialog {
-  private static JDialog _self;
-  private JFrame _owner;
-  private static final JLabel startupDialogLabel = new JLabel("Starting up Worklets Sender", SwingConstants.CENTER);
-  private static final JTextArea startupTextArea = new JTextArea("Starting up Worklets Sender", 8, 30);
   static PrintStream out =
     new PrintStream(
       new OutputStream() {
@@ -78,6 +104,10 @@ class StartupDialog extends JDialog {
       }
   };
 
+ private static JDialog _self;
+  private JFrame _owner;
+  private static final JLabel startupDialogLabel = new JLabel("Starting up Worklets Sender", SwingConstants.CENTER);
+  private static final JTextArea startupTextArea = new JTextArea("Starting up Worklets Sender", 8, 30);
   StartupDialog(JFrame owner) {
     super(owner, "Starting up Worklets Sender", true);
     _self = this;
@@ -93,14 +123,14 @@ class StartupDialog extends JDialog {
 
 	private JButton closeBut;
   void shutdown() {
-		System.out.println("setting AL to true");
+		out.print("Can close now");
 		closeBut.setEnabled(true);
   }
 
   private static final Color bg = new Color(22, 106, 175);
   protected void dialogInit() {
     out.println("In dialogInit");
-    startupDialogLabel.setFont(new Font("Dialog", Font.BOLD, 24));
+    startupDialogLabel.setFont(new Font("Dialog", Font.BOLD, 16));
     startupDialogLabel.setForeground(Color.white);
     startupTextArea.setForeground(Color.white);
     startupTextArea.setEditable(false);
@@ -131,7 +161,7 @@ class StartupDialog extends JDialog {
     // Top level image
     JLabel topImgLabel = new JLabel(new ImageIcon("images/SD.gif"), SwingConstants.LEADING);
     JLabel topTxtLabel = new JLabel("Dispatchin' dem worklets", SwingConstants.CENTER);
-    topTxtLabel.setFont(new Font("Dialog", Font.BOLD, 16));
+    topTxtLabel.setFont(new Font("Dialog", Font.BOLD, 12));
     topTxtLabel.setForeground(Color.lightGray);
     gbl = (GridBagLayout) topPanel.getLayout();
     c = new GridBagConstraints();
@@ -157,7 +187,6 @@ class StartupDialog extends JDialog {
     closeBut.setForeground(bg);
     closeBut.addActionListener(new ActionListener() {
       public void actionPerformed(ActionEvent e) {
-				System.out.println("button clicked");
         _self.hide();
         _owner.show();
       }

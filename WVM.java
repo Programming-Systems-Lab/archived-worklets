@@ -9,14 +9,14 @@ package psl.worklets;
  * 
 */
 
+import java.io.*;
 import java.net.*;
 import java.util.*;
 
 public final class WVM extends Thread {
+	public static PrintStream out = System.out;
   WVM_Transporter transporter;
-  
   private Object _system;
-  
   private final Hashtable _peers = new Hashtable();
   private final Vector _installedWorklets = new Vector();
   
@@ -25,13 +25,13 @@ public final class WVM extends Thread {
   }  
 
   public WVM(Object system, String host, String name, int port) {
-    System.out.println("WVM created");
+    WVM.out.println("WVM created");
     this.start();
     _system = system;
     try {
       transporter = new WVM_RMI_Transporter(this, host, name, port);
     } catch (Exception e) {
-      System.out.println(e.getMessage());
+      WVM.out.println(e.getMessage());
       e.printStackTrace();
     }
     Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -48,7 +48,7 @@ public final class WVM extends Thread {
     transporter.shutdown();
     transporter = null;
     _system = null;
-    System.out.println("WVM destroyed");
+    WVM.out.println("WVM destroyed");
   }
 
   public void run() {
@@ -81,7 +81,7 @@ public final class WVM extends Thread {
   }
   
   public static void main(String args[]) throws UnknownHostException {
-		System.out.println("usage: java psl.worklets.WVM <wvmName>");
+		WVM.out.println("usage: java psl.worklets.WVM <wvmName>");
 		String rmiName = args.length == 0 ? "WVM" : args[0];
     WVM wvm = new WVM(new Object(), InetAddress.getLocalHost().getHostAddress(), rmiName);
   }

@@ -1,3 +1,7 @@
+12 March 2001
+=============
+  - use RMISocketFactory for +1 Registries in the same JVM
+
 10 March 2001
 =============
   - add WVM.out: a PrintStream oject, same as System.out by default

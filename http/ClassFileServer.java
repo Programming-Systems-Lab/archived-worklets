@@ -20,7 +20,7 @@ import java.util.Vector;
 import java.util.Iterator;
 import java.util.jar.*;
 import java.util.zip.*;
-// import psl.worklets2.WklRMISecurityManager;
+import psl.worklets.*;
 
 /**
  * The ClassFileServer implements a ClassServer that
@@ -48,7 +48,7 @@ public class ClassFileServer extends ClassServer {
     String sysPath = System.getProperty("java.class.path");
     String separator = System.getProperty("path.separator");
     StringTokenizer cpTok = new StringTokenizer(sysPath, separator);
-    // System.out.println("ClassPath is: " + sysPath);
+    // WVM.out.println("ClassPath is: " + sysPath);
     String token;
     
     while (cpTok.hasMoreTokens()) {
@@ -57,9 +57,9 @@ public class ClassFileServer extends ClassServer {
         token = System.getProperty("user.dir");
       }
       aliases.addElement(token);
-      // System.out.println("\t" + token);
+      // WVM.out.println("\t" + token);
     }  
-    // System.out.println("Ended ClassFileServer");
+    // WVM.out.println("Ended ClassFileServer");
   }
   
   public int getWebPort () { return port; }
@@ -81,12 +81,12 @@ public class ClassFileServer extends ClassServer {
     byte[] bytecodes = null;
     File f = null;
     
-    // System.out.println ("\tLooking for CLASS: " + path);
+    // WVM.out.println ("\tLooking for CLASS: " + path);
     
     if (default_codebase != null) {
       f = findFile(default_codebase, path);
       if (f != null && f.exists()) {
-        // System.out.println (f.getPath() + " found in default classpath");
+        // WVM.out.println (f.getPath() + " found in default classpath");
         if (f.isFile() && (default_codebase.endsWith(".jar") || default_codebase.endsWith(".zip"))) {
           bytecodes = jarExtract(f, path);
           if (bytecodes != null) {
@@ -99,18 +99,18 @@ public class ClassFileServer extends ClassServer {
     }
     
     // at this point we have to check aliases
-    // System.out.println (aliases.size() + " aliases to check");
+    // WVM.out.println (aliases.size() + " aliases to check");
     Iterator iter = aliases.iterator();
     
     while (iter.hasNext()) {
       
-      // System.out.println ("Iterating on aliases ...");
+      // WVM.out.println ("Iterating on aliases ...");
       String cpItem = (String) iter.next();
-      // System.out.println("Classpath for classFileServer: " + cpItem);
+      // WVM.out.println("Classpath for classFileServer: " + cpItem);
       f = findFile (cpItem, path);
-      // System.out.println (f.getPath());
+      // WVM.out.println (f.getPath());
       if (f!= null && f.exists()) {
-        // System.out.println (f.getName());
+        // WVM.out.println (f.getName());
         if (f.isFile() && (cpItem.endsWith(".jar") || cpItem.endsWith(".zip"))) {
           bytecodes = jarExtract(f, path);
           if (bytecodes != null) {
@@ -123,7 +123,7 @@ public class ClassFileServer extends ClassServer {
      }  
     
     if (f == null || !f.exists()) {
-      // System.out.println( path + " Not Found" );
+      // WVM.out.println( path + " Not Found" );
       throw new IOException("Class cannot be served " + path);
     }
     
@@ -131,7 +131,7 @@ public class ClassFileServer extends ClassServer {
   }    
 
   private byte[] classExtract(File f)  throws IOException {
-    // System.out.println ("\tin classExtract: " + f.getPath());
+    // WVM.out.println ("\tin classExtract: " + f.getPath());
     int length = (int) f.length();
     FileInputStream fin = new FileInputStream(f);
     DataInputStream in = new DataInputStream(fin);
@@ -139,28 +139,28 @@ public class ClassFileServer extends ClassServer {
     byte[] classData = new byte[length];
     in.readFully(classData);
     in.close();
-    // System.out.println("\treturning from classExtract w/ " + classData.length);
+    // WVM.out.println("\treturning from classExtract w/ " + classData.length);
     return classData;
   }
   
   private byte[] jarExtract (File f, String path) throws IOException, ZipException {
-    // System.out.println ("\t\tin jarExtract: " + f.getName());
+    // WVM.out.println ("\t\tin jarExtract: " + f.getName());
     byte[] classData = null;
     ZipFile zipfile = new ZipFile(f);
     String jarEntryName = path.replace ('.', '/');
     jarEntryName = jarEntryName + (".class");
     ZipEntry zipentry = zipfile.getEntry(jarEntryName);
-    // System.out.println ("\t" + jarEntryName);
+    // WVM.out.println ("\t" + jarEntryName);
     if(zipentry != null) {
       try {
-        // System.out.println (jarEntryName + " found in JAR archive: " + zipfile.getName());
+        // WVM.out.println (jarEntryName + " found in JAR archive: " + zipfile.getName());
         DataInputStream dis = new DataInputStream(zipfile.getInputStream(zipentry));
         classData = new byte[dis.available()];
-        // System.out.println ("Reading in: " + dis.available());
+        // WVM.out.println ("Reading in: " + dis.available());
         dis.readFully(classData);
         dis.close();
       }  catch(IOException e) {
-        // System.out.println(path + " in file " + f.getName() + " could not be opened:");
+        // WVM.out.println(path + " in file " + f.getName() + " could not be opened:");
         e.printStackTrace();
       }
      }
@@ -168,21 +168,21 @@ public class ClassFileServer extends ClassServer {
   }
   
   private File findFile (String rootPath, String path) {
-    // System.out.println ("In findFile() searching in: " + rootPath + " for: " + path);
+    // WVM.out.println ("In findFile() searching in: " + rootPath + " for: " + path);
     try {
       File pathItem = new File(rootPath);
       if (pathItem.isDirectory()) {
-        // System.out.println ("IN DIR: " + pathItem.getPath());
+        // WVM.out.println ("IN DIR: " + pathItem.getPath());
         if (! rootPath.endsWith(File.separator)) {
           rootPath = rootPath + File.separator;
         }
         String filePath = rootPath +  path.replace('.', File.separatorChar) + ".class";
         return new File(filePath);
       }
-      // System.out.println ("NO DIR: " + pathItem.getPath());
+      // WVM.out.println ("NO DIR: " + pathItem.getPath());
       return pathItem;
     } catch (SecurityException e) {
-      // System.out.println ("READ access denied to " + rootPath);
+      // WVM.out.println ("READ access denied to " + rootPath);
       // e.printStackTrace();
       return null;
     }
@@ -227,9 +227,9 @@ public class ClassFileServer extends ClassServer {
     
     try {
       new ClassFileServer(port, classpath);
-      // System.out.println("ClassFileServer started...");
+      // WVM.out.println("ClassFileServer started...");
     } catch (IOException e) {
-      // System.out.println("Unable to start ClassServer: " + e.getMessage());
+      // WVM.out.println("Unable to start ClassServer: " + e.getMessage());
       e.printStackTrace();
     }
   }

@@ -35,14 +35,14 @@ class WVM_RMI_Transporter extends WVM_Transporter {
     super(wvm, host, name, port);
     creation = new Date();
     
-    System.out.println("Creating the RMI transporter layer for the WVM");
+    WVM.out.println("Creating the RMI transporter layer for the WVM");
 
     // setup RMI_Security Manager
     if (System.getSecurityManager() == null) {
       WVM_RMISecurityManager secMgr = new WVM_RMISecurityManager();
       secMgr.addReadableFiles(_webserver.getAliases());
       System.setSecurityManager(secMgr);
-      // System.out.println ("Security Manager is: " + System.getSecurityManager().getClass());
+      // WVM.out.println ("Security Manager is: " + System.getSecurityManager().getClass());
     }
 
     setupRegistry();
@@ -52,11 +52,11 @@ class WVM_RMI_Transporter extends WVM_Transporter {
   void setupRegistry() {
     // Create RMI Registry
     try {
-      System.out.println("Creating RMI Registry: " + _host + ":" + _port);
+      WVM.out.println("Creating RMI Registry: " + _host + ":" + _port);
       rmiRegistry = LocateRegistry.createRegistry(9100);
       registryService = true;
     } catch (RemoteException e) {
-      System.out.println("Could not create the RMI Registry");
+      WVM.out.println("Could not create the RMI Registry");
       rmiRegistry = null;
       registryService = false;
     }
@@ -79,7 +79,7 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         continue;
       }
     }
-    System.out.println("Could not create the RMI transporter layer for the WVM");
+    WVM.out.println("Could not create the RMI transporter layer for the WVM");
     rtu = null;
     rmiService = false;
   }
@@ -92,7 +92,7 @@ class WVM_RMI_Transporter extends WVM_Transporter {
     // shut down RMIRegistry
     try {
       if (registryService) {
-        System.out.println("Shutting down the RMI Registry: " + _host + ":" + _port);
+        WVM.out.println("Shutting down the RMI Registry: " + _host + ":" + _port);
         Date oldestDate = new Date();
         int nextRegistry = -1;
         WVM_Host wvmH = null;
@@ -103,11 +103,11 @@ class WVM_RMI_Transporter extends WVM_Transporter {
           try {
             tmpWVM_H = (WVM_Host) Naming.lookup("rmi://" + _host + ":" + _port + "/" + name);
           } catch (NotBoundException e) {
-            System.out.println("RMI Service was not bound: " + name);
+            WVM.out.println("RMI Service was not bound: " + name);
           } catch (MalformedURLException e) {
-            System.out.println("MalformedURLException: " + name);
+            WVM.out.println("MalformedURLException: " + name);
           } finally {
-            System.out.println("    unregistered service: " + name);
+            WVM.out.println("    unregistered service: " + name);
           }
           Date tmpDate = tmpWVM_H.rejoinRegistry();
           if (tmpDate.before(oldestDate)) {
@@ -123,7 +123,7 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         registryService = false;
       }
     } catch (RemoteException e) {
-      System.out.println("RemoteException: " + e.getMessage());
+      WVM.out.println("RemoteException: " + e.getMessage());
       e.printStackTrace();
     }
   }
@@ -131,11 +131,11 @@ class WVM_RMI_Transporter extends WVM_Transporter {
   protected void sendWorklet(Worklet wkl, WorkletJunction wj) {
     if (rmiService) {
       try {
-        System.out.println("  --  Sending worklet thru RMI");
+        WVM.out.println("  --  Sending worklet thru RMI");
         rtu.sendWorklet(wkl, wj);
         return;
       } catch (RemoteException e) {
-        System.out.println("  --  Cannot send worklets thru RMI, defaulting to sockets");
+        WVM.out.println("  --  Cannot send worklets thru RMI, defaulting to sockets");
         e.printStackTrace();
       }
     }
@@ -150,7 +150,7 @@ class WVM_RMI_Transporter extends WVM_Transporter {
           setCodebase();
         }
         Naming.rebind("rmi://" + _host + ":" + _port + "/" + _name, this);
-        System.out.println("  RMI Listener: " + " rmi://" + _host + ":" + _port + "/" + _name);
+        WVM.out.println("  RMI Listener: " + " rmi://" + _host + ":" + _port + "/" + _name);
         return;
       } catch (java.rmi.ConnectException e) {
         System.err.println("Shutting down; rmiregistry not running on port: " + _port);
@@ -178,16 +178,16 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         } else {
           rmiCodebase = codebase;
         }
-        System.out.println ("Setting RMI codebase to: " + rmiCodebase);
+        WVM.out.println ("Setting RMI codebase to: " + rmiCodebase);
         props.setProperty ("java.rmi.server.codebase", rmiCodebase);
         
       } catch (MalformedURLException e) {
         e.printStackTrace();
-        // System.out.println ("serving class URL for this WVM is invalid: " + codebaseURL);  
+        // WVM.out.println ("serving class URL for this WVM is invalid: " + codebaseURL);  
         _webserver.shutdown();
         _webserver = null;
         _isClassServer = false;
-        // System.out.println ("Cannot serve classes from this WVM");
+        // WVM.out.println ("Cannot serve classes from this WVM");
       }
     }
 
@@ -201,7 +201,7 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         System.err.println("Exception: " + e);
         e.printStackTrace();
       } finally {
-        System.out.println("Shut down the RMI transporter layer for the WVM");
+        WVM.out.println("Shut down the RMI transporter layer for the WVM");
       }
     }
       
@@ -215,22 +215,22 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         WVM_Host wvmHost = (WVM_Host) Naming.lookup("//" + wj._host + ":" + _port + "/" + wj._name);
         wvmHost.receiveWorklet(wkl);
       } catch (NotBoundException e) {
-        System.out.println("NotBoundException: " + e.getMessage());
+        WVM.out.println("NotBoundException: " + e.getMessage());
         // e.printStackTrace();
         throw(new RemoteException(e.getMessage()));
       } catch (MalformedURLException e) {
-        System.out.println("MalformedURLException: " + e.getMessage());
+        WVM.out.println("MalformedURLException: " + e.getMessage());
         // e.printStackTrace();
         throw(new RemoteException(e.getMessage()));
       } catch (RemoteException e) {
-        System.out.println("RemoteException: " + e.getMessage());
+        WVM.out.println("RemoteException: " + e.getMessage());
         // e.printStackTrace();
         throw(e);
       }
     }
 
     public Date rejoinRegistry() throws RemoteException {
-      System.out.println("asked to rejoin rmiregistry");
+      WVM.out.println("asked to rejoin rmiregistry");
       if (rmiService) rtu.shutdown();
       rmiService = false;
       Thread t = new Thread() {
@@ -241,7 +241,7 @@ class WVM_RMI_Transporter extends WVM_Transporter {
               sleep(1000);
             } catch (InterruptedException e) { }
           }
-          System.out.println("  -- going to re-join rmiregistry");
+          WVM.out.println("  -- going to re-join rmiregistry");
           setupRMI();
         }
       };
@@ -256,7 +256,7 @@ class WVM_RMI_Transporter extends WVM_Transporter {
           for (int i=0; i<3; i++) {
             try {
               sleep(1000);
-              System.out.print(" * ");
+              WVM.out.print(" * ");
             } catch (InterruptedException e) { }
           }
           setupRegistry();
@@ -293,12 +293,12 @@ class WVM_RMI_Transporter extends WVM_Transporter {
     
     public void addReadableFiles (Collection c) {
       readableFiles.addAll(c);
-      // System.out.println ("**** ReadableFiles size " + readableFiles.size() + " ****");
+      // WVM.out.println ("**** ReadableFiles size " + readableFiles.size() + " ****");
     }
     
     public void addReadableFile (String filePath) {
       readableFiles.add(filePath);
-      // System.out.println ("**** ReadableFiles size " + readableFiles.size() + " ****");
+      // WVM.out.println ("**** ReadableFiles size " + readableFiles.size() + " ****");
     }
     
     public void removeReadableFiles (Collection c) {

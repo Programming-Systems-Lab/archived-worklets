@@ -30,7 +30,7 @@ class WVM_Transporter extends Thread {
   protected boolean _isClassServer;
 
   protected WVM_Transporter(WVM wvm, String host, String name, int port) {
-    System.out.println("Creating the sockets transporter layer for the WVM");
+    WVM.out.println("Creating the sockets transporter layer for the WVM");
 
     // Setup socket
     _host = host;
@@ -39,7 +39,7 @@ class WVM_Transporter extends Thread {
     while (_port++ >= port) {
       try {
         _socket = new ServerSocket(_port);
-        System.out.println("  SocketListener: " + _host + ":" + _port);
+        WVM.out.println("  SocketListener: " + _host + ":" + _port);
         _isActive = true;
         break;
       } catch (UnknownHostException e) {
@@ -54,11 +54,11 @@ class WVM_Transporter extends Thread {
     try {
       _webPort = _port + 1;
       _webserver = new ClassFileServer(_webPort, null);
-      System.out.println("  serving classes on http://" + _host + ":" + _webPort + "/");
+      WVM.out.println("  serving classes on http://" + _host + ":" + _webPort + "/");
       _isClassServer = true;
       _webPort = _webserver.getWebPort();
     } catch (IOException e) {
-      System.out.println("ClassFileServer cannot start: " + e.getMessage());
+      WVM.out.println("ClassFileServer cannot start: " + e.getMessage());
       e.printStackTrace();
 
       if (_webserver != null) _webserver.shutdown();
@@ -82,21 +82,21 @@ class WVM_Transporter extends Thread {
     
     while (!_isActive) {
       try {
-        System.out.print(".");
+        WVM.out.print(".");
         sleep(50);
       } catch (InterruptedException e) { }
     }
     
     MAIN_LOOP: while (_isActive) {
-      System.out.println("    ready to accept worklets");
+      WVM.out.println("    ready to accept worklets");
       try {
         if (!_isActive) shutdown();
         Socket s = _socket.accept();
-        System.out.println("    received a worklet");
+        WVM.out.println("    received a worklet");
         ObjectInputStream ois = new ObjectInputStream(s.getInputStream()) {
           protected Class resolveClass(ObjectStreamClass v) throws IOException, ClassNotFoundException {
             Class c = Class.forName(v.getName(), true, _loader);
-            // System.out.println("Trying to resolve class: " + c);
+            // WVM.out.println("Trying to resolve class: " + c);
             return ( (c == null) ? super.resolveClass(v) : c );
           }
         };
@@ -109,9 +109,9 @@ class WVM_Transporter extends Thread {
             addCodebase(codebase);
             Class loadCl = _loader.loadClass(cName);
           } catch (ClassNotFoundException e) {
-            System.out.println ("Class " + cName + " could not be loaded from codebase: " + codebase);
+            WVM.out.println ("Class " + cName + " could not be loaded from codebase: " + codebase);
             e.printStackTrace();
-            System.out.println ("\n\n    getting ready to accept worklets again");
+            WVM.out.println ("\n\n    getting ready to accept worklets again");
             continue MAIN_LOOP;
           }
         }
@@ -119,16 +119,16 @@ class WVM_Transporter extends Thread {
         try {
           wkl = (Worklet) ois.readObject(); // GOT PROBLEMS HERE!!!
         } catch (Exception e) {
-          System.out.println("Got BIG problems here");
+          WVM.out.println("Got BIG problems here");
           e.printStackTrace();
           System.exit(0);
         }
         _wvm.installWorklet(wkl);
       } catch (IOException e) {
-        System.out.println("IOException e: " + e.getMessage());
+        WVM.out.println("IOException e: " + e.getMessage());
         e.printStackTrace();
       }
-      System.out.println();
+      WVM.out.println();
     }
   }
 
@@ -157,7 +157,7 @@ class WVM_Transporter extends Thread {
     String targetHost = wj._host;
     int targetPort = wj._port;
     try {
-      System.out.println("  --  Sending worklet thru sockets");
+      WVM.out.println("  --  Sending worklet thru sockets");
       Socket s = new Socket(targetHost, targetPort);
       ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
 
@@ -174,34 +174,34 @@ class WVM_Transporter extends Thread {
           cName = c.getName();
           if (sysCll == cl) {
             codebase = "http://" + _host + ":" + _webPort + "/";
-            // System.out.println("cl==SystemClassLoader, codebase: " + codebase);
+            // WVM.out.println("cl==SystemClassLoader, codebase: " + codebase);
           } else {
             URL url = cl.getResource(cName.replace('.', '/') + ".class");
             codebase = url.getProtocol() + "://" + url.getHost() + url.getPort() + "/";
-            // System.out.println("cl!=SystemClassLoader, codebase: " + codebase);
+            // WVM.out.println("cl!=SystemClassLoader, codebase: " + codebase);
           }
         }
-        // System.out.println("codebase: " + codebase);
+        // WVM.out.println("codebase: " + codebase);
         oos.writeUTF(cName);
         oos.writeUTF(codebase);
       }
 
       oos.writeObject(wkl);
-      // System.out.println("sent out wj to target: " + wkl);
+      // WVM.out.println("sent out wj to target: " + wkl);
     } catch (InvalidClassException e) {
-      System.out.println(e.getMessage());
+      WVM.out.println(e.getMessage());
       e.printStackTrace();
     } catch (NotSerializableException e) {
-      System.out.println(e.getMessage());
+      WVM.out.println(e.getMessage());
       e.printStackTrace();
     } catch (UnknownHostException e) {
-      System.out.println(e.getMessage());
+      WVM.out.println(e.getMessage());
       e.printStackTrace();
     } catch (SecurityException e) {
-      System.out.println(e.getMessage());
+      WVM.out.println(e.getMessage());
       e.printStackTrace();
     } catch (IOException e) {
-      System.out.println(e.getMessage());
+      WVM.out.println(e.getMessage());
       e.printStackTrace();
     }
   }

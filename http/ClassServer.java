@@ -18,6 +18,7 @@ package psl.worklets.http;
 
 import java.io.*;
 import java.net.*;
+import psl.worklets.*;
 
 /**
  * ClassServer is an abstract class that provides the
@@ -74,7 +75,7 @@ implements Runnable
         this.port += 100;
       }
     }
-        System.out.println ("Class server listening on Web port: " + this.port);
+        WVM.out.println ("Class server listening on Web port: " + this.port);
         
         //server = new ServerSocket(this.port);
         newListener();
@@ -110,7 +111,7 @@ implements Runnable
         }
         catch (IOException e)
         {
-            System.out.println("Class Server died: " + e.getMessage());
+            WVM.out.println("Class Server died: " + e.getMessage());
             // e.printStackTrace();
             return;
         }
@@ -138,7 +139,7 @@ implements Runnable
                     out.writeBytes("Content-Type: application/java\r\n\r\n");
                     out.write(bytecodes);
                     out.flush();
-                    // System.out.println("Wrote out to http client");
+                    // WVM.out.println("Wrote out to http client");
                 }
                 catch (IOException ie)
                 {
@@ -159,7 +160,7 @@ implements Runnable
         {
             // eat exception (could log error to log file, but
             // write out to stdout for now).
-            System.out.println("error writing response: " + ex.getMessage());
+            WVM.out.println("error writing response: " + ex.getMessage());
             ex.printStackTrace();
 
         }
@@ -177,14 +178,14 @@ implements Runnable
     
     public void shutdown()
   {
-    System.out.println ("Shutting down Class Server ...");
+    WVM.out.println ("Shutting down Class Server ...");
     try
     {
       server.close();
     }
     catch (IOException e)
     { }
-    System.out.println ("Class Server shut down");
+    WVM.out.println ("Class Server shut down");
   }
 
     /**
@@ -202,7 +203,7 @@ implements Runnable
     private static String getPath(BufferedReader in)     throws IOException
     {
         String line = in.readLine();
-        // System.out.println("\trequest is: " + line);
+        // WVM.out.println("\trequest is: " + line);
         String path = "";
 
         // extract class from GET line
@@ -214,7 +215,7 @@ implements Runnable
             if (index != -1)
             {
                 path = line.substring(0, index).replace('/', '.');
-                // System.out.println ("\tpath is: " + path);
+                // WVM.out.println ("\tpath is: " + path);
             }
         }
 
@@ -222,13 +223,13 @@ implements Runnable
         do
         {
             line = in.readLine();
-            // System.out.println ("\t" + line);            
+            // WVM.out.println ("\t" + line);            
 
         } while ((line.length() != 0) && (line.charAt(0) != '\r') && (line.charAt(0) != '\n'));
 
         if (path.length() != 0)
         {
-            // System.out.println("Edited: gskc, 19Feb01 --- returning path: " + path);
+            // WVM.out.println("Edited: gskc, 19Feb01 --- returning path: " + path);
             return path;
         }
         else
