@@ -1,7 +1,16 @@
+05 June 2001
+============
+  - public static final int java.rmi.server.ObjID.Registry_ID = 0;
+    this is the ID set for the single instance of the RMI Registry
+  - to change this, need to:
+    + negatively increasing ObjID numbers for all registry instances
+    + look at the RMI runtime system to see if can reasonably well
+      implement 
+
 04 May 2001
 ===========
-	- customised protocol handlers
-	- customised protocol: eg. WBTP, Worklet Bytecode transfer protocol
+  - customised protocol handlers
+  - customised protocol: eg. WBTP, Worklet Bytecode transfer protocol
 
 05 April 2001
 =============
