@@ -30,6 +30,7 @@ public final class WVM extends Thread {
     _system = system;
     try {
       transporter = new WVM_RMI_Transporter(this, host, name, port);
+      transporter.start();
     } catch (Exception e) {
       WVM.out.println(e.getMessage());
       e.printStackTrace();
@@ -53,6 +54,7 @@ public final class WVM extends Thread {
     WVM.out.println("WVM destroyed");
   }
 
+  static Hashtable _activeWorklets = new Hashtable();
   public void run() {
     Worklet _worklet;
     synchronized (this) {
@@ -64,12 +66,15 @@ public final class WVM extends Thread {
         }
         _worklet = (Worklet) _installedWorklets.firstElement();
         _installedWorklets.removeElement(_worklet);
-        executeWorklet(_worklet);
+        String hashCode = (new Integer(_worklet.hashCode())).toString();
+        _activeWorklets.put(hashCode, _worklet);
+        executeWorklet(_worklet, hashCode);
       }
     }
   }
 
   synchronized void installWorklet(Worklet _worklet) {
+    _worklet.init(_system, this);
     _installedWorklets.addElement(_worklet);
     if (_installedWorklets.size() == 1) {
       // WVM was asleep coz' in-tray was empty, must wake up!
@@ -77,9 +82,10 @@ public final class WVM extends Thread {
     }
   }
   
-  private void executeWorklet(Worklet _worklet) {
-    _worklet.init(_system, this);
-    _worklet.execute();
+  Worklet _executingWorklet;
+  private void executeWorklet(Worklet _worklet, String _hashCode) {
+    _executingWorklet = _worklet;
+    (new Thread(_executingWorklet, _hashCode)).start();
   }
 
   public String toString() {

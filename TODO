@@ -1,3 +1,73 @@
+27 March 2001
+=============
+  - RMI will load the classes from the source site's http server
+    automatically ... so sending the default bytecode retrieval
+    worklet will not do any good in this case ... might need a way
+    to retrieve the classes locally in any case .. lets see how...
+
+27 March 2001
+=============
+  - WVM_ClassLoader can detect every time a class is loaded 
+    from the source site via the URLClassLoader and custom 
+    http server. While Worklet is being loaded from the socket
+    connection, the executing thread is the transporter .. it will
+    have a hashset for collecting the names of all classes loaded
+    through WVM_ClassLoader .. when the object is done being loaded,
+    the transporter will send a bytecode retrieval worklet to the
+    source site to collect the afore-mentioned Classes' bytecodes.
+  - Also, when the Worklet is done executing, the names of all the 
+    classes that were loaded from the same http server is retrieved
+    from the hashset stored in the worklet itself. Before this worklet
+    is sent out to its next junction, a bytecode retrieval worklet is
+    sent to the source site again .. this time to retrieve those classes
+    that were loaded during the execution of the workletjunction.
+
+26 March 2001
+=============
+  - Look at URLConnection, URLStreamHandler to customise ProtocolHandler
+    Also, customise ContentHandler ... 
+  - Integrate light-weight WGC w/ WVMs so that target WVMs will be
+    prepared w/ pre-cached class bytecode for any incoming Worklets
+  - quick solution for sockets transporter: get list of classes from
+    WVM_ClassLoader ... when complete Worklet has been read in, use this
+    list to retrieve the classes from the source WVM
+
+24 March 2001
+=============
+  - use WGCache in WVMs ... 
+  - WVM ClassLoading supports transitive ClassLoading for
+    ephemeral WVMs: bytecode is required immediately. As
+    bytecode is needed during execution, the WVM is not
+    guaranteed URLClassLoading from the origin and/or any
+    intermediary WMVs
+  - Transporter layer [sockets & rmi] is responsible for
+    setting up BAG - MULTISET for storing information
+    about the classes served up by webserver. As webserver
+    receives each request, it will locate the corresponding
+    BAG-MULTISET using the remote IP as primary key, and 
+    either RMI-name or Port as secondary key. With either
+    transportation mechanism, the classes for URLLoading
+    are served up by the same webserver on the sender
+    WVM.
+  - At the target site, the transporter layer has to 
+    send the RetrieveWJ
+
+
+23 March 2001
+============
+  - WVM will send out a worklet with all cached files that 
+    happen to be requested via URLClassLoaders ... this can
+    take place every N seconds. This worklet will go to all
+    sites that requested bytecode within the last N seconds.
+  - WVM keeps a hashtable of className:codebaseURL for classes.
+    Entries will be added as class names / codebases are received
+    by the sockets layer. Entries are updated if classes are 
+    later on cached locally.
+
+22 March 2001
+============
+  - Make WVM.out be a wrapper round a real PrintStream object
+
 21 March 2001
 =============
   - ClassFileServer will collect all classFiles served
@@ -48,7 +118,8 @@
 
 04 March 2001
 =============
-  - modify ClassFileServer to "spy" on outgoing Class files
+  - modify ClassFileServer to "spy" on outgoing Class files,          ;)
+    and also cache them
   - subclass URLClassLoader to "cache" URL-Loaded Class files,
     and dump to local file system
 

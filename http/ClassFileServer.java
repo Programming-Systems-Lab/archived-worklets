@@ -65,7 +65,7 @@ public class ClassFileServer extends ClassServer {
   
   public int getWebPort () { return port; }
   
-  public Vector getAliases() {return aliases; }
+  public Vector getAliases() { return aliases; }
   
   
   /**
@@ -86,7 +86,7 @@ public class ClassFileServer extends ClassServer {
 
     // retrieve previously-cached bytecode: added Gskc @ 21March2001
     if (bytecodeCache.containsKey(path)) {
-      WVM.out.println("Serving cached bytecode for class: " + path);
+      // WVM.out.println("Serving cached bytecode for class: " + path);
       return ((byte []) bytecodeCache.get(path));
     }
     

@@ -130,7 +130,7 @@ class WVM_RMI_Transporter extends WVM_Transporter {
   void sendWorklet(Worklet wkl, WorkletJunction wj) {
     if (rmiService) {
       try {
-        WVM.out.println("  --  Sending worklet thru RMI");
+        WVM.out.println("  --  Sending worklet thru RMI: " + wj);
         rtu.sendWorklet(wkl, wj);
         return;
       } catch (RemoteException e) {
@@ -142,8 +142,8 @@ class WVM_RMI_Transporter extends WVM_Transporter {
   }
 
   public String toString() {
-    if (rmiService) return (_name + " @ " + _host + " : " + _port);
-    return (_host + " : " + _port);
+    if (rmiService) return (_name + " @ " + _host + " : " + super._port);
+    return (_host + " : " + super._port);
   }
 
   class RTU extends UnicastRemoteObject implements WVM_Host {
@@ -210,13 +210,21 @@ class WVM_RMI_Transporter extends WVM_Transporter {
     }
       
     public void receiveWorklet(Worklet wkl) throws RemoteException {
-      // adding to WVM's in-tray
+      // TODO: Okay, now that the LEAST REQUIRED SET (LRS) of class bytecode
+      // has been downloaded from the source WVM, send out a BytecodeRetrieverWJ
+      // to get the relevant classes, viz. all those classes that the source
+      // HTTP server served up to this WVM
+
+      // adding to WVM's in-tray, and don't need to send out BytecodeRetrieval worklet
+      wkl.retrieveBytecode = false;
       _wvm.installWorklet(wkl);
     }
 
     public void sendWorklet(Worklet wkl, WorkletJunction wj) throws RemoteException {
       try {
         WVM_Host wvmHost = (WVM_Host) Naming.lookup("//" + wj._host + ":" + _port + "/" + wj._name);
+        // TODO: set up the BAG-MULTISET in the ClassFileServer so that the 
+        // incoming BytecodeRetrieverWJ can get the data it needs
         wvmHost.receiveWorklet(wkl);
       } catch (NotBoundException e) {
         WVM.out.println("NotBoundException: " + e.getMessage());

@@ -9,6 +9,7 @@ package psl.worklets;
 */
 
 import java.io.*;
+import java.util.*;
 
 public abstract class WorkletJunction implements Serializable {
 
@@ -20,6 +21,7 @@ public abstract class WorkletJunction implements Serializable {
   protected WVM _wvm;
 
   protected WorkletJunction _originJunction;
+  protected Hashtable _payload;
 
   int _state;
 
@@ -36,6 +38,7 @@ public abstract class WorkletJunction implements Serializable {
     _name = name;
     _port = port;
     _state = WorkletJacket.STATE_READY;
+    _payload = new Hashtable();
   }
 
   void setOriginWorkletJunction(WorkletJunction origin) {

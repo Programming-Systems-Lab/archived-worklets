@@ -1,3 +1,8 @@
+22 March 2001
+=============
+  - RMIClassLoader cannot see the classes loaded by the custom
+	ClassLoader used by the sockets communication model
+
 04 March 2001
 =============
   - Registry creation works beautifylly, even with

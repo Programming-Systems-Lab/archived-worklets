@@ -60,8 +60,15 @@ public class WKL_Demo_Target extends JFrame {
     bottomPanel.add(wvmNameLabel, BorderLayout.WEST);
     bottomPanel.add(wvmNameText, BorderLayout.CENTER);
     bottomPanel.add(wvmNameButton, BorderLayout.EAST);
-    
+
     // WVM name changing
+    wvmNameText.grabFocus();
+    wvmNameText.addFocusListener(new FocusAdapter() {
+      public void focusGained(FocusEvent e) {
+        wvmNameText.setSelectionStart(0);
+        wvmNameText.setSelectionEnd(wvmNameText.getText().length());
+      }
+    });
     wvmNameButton.addActionListener(new ActionListener() {
       private boolean canClearLogs = false;
       public void actionPerformed(ActionEvent ae) {
@@ -89,7 +96,6 @@ public class WKL_Demo_Target extends JFrame {
 
   private WVM wvm = null;
   private void startWVM() {
-    if (wvm != null) wvm.shutdown();
     try {
       wvm = new WVM(this, InetAddress.getLocalHost().getHostAddress(), _name);
     } catch (UnknownHostException e) {

@@ -38,213 +38,169 @@ import psl.worklets.*;
  *
  * @see ClassFileServer
  */
-abstract class ClassServer
+public abstract class ClassServer implements Runnable {
+  protected ServerSocket server = null;
+  protected int port;
 
-implements Runnable
-{
-
-    protected ServerSocket server = null;
-    protected int port;
-
-    /**
-     * Constructs a ClassServer that listens on <b>port</b> and
-     * obtains a class's bytecodes using the method <b>getBytes</b>.
-     *
-     * @param port the port number
-     * @exception IOException if the ClassServer could not listen
-     *            on <b>port</b>.
-     */
-    protected ClassServer(int aPort) throws IOException
-    {
-        // Setup socket
-        this.port = aPort;
-        
-    while (this.port >= aPort)
-    {
-        try 
-        {
+  /**
+   * Constructs a ClassServer that listens on <b>port</b> and
+   * obtains a class's bytecodes using the method <b>getBytes</b>.
+   *
+   * @param port the port number
+   * @exception IOException if the ClassServer could not listen
+   *            on <b>port</b>.
+   */
+  protected ClassServer(int aPort) throws IOException {
+    // Setup socket
+    this.port = aPort;
+    while (this.port >= aPort) {
+      try {
         server = new ServerSocket(this.port);
         break;
-        } 
-        catch (UnknownHostException e) 
-        {
+      } catch (UnknownHostException e) {
         // whut? not possible!
-      } 
-      catch (IOException e) 
-      {
+      } catch (IOException e) {
         // oops, must try another port number;
-        this.port += 100;
+        port += 100;
       }
     }
-        WVM.out.println ("Class server listening on Web port: " + this.port);
-        
-        //server = new ServerSocket(this.port);
-        newListener();
-    }
+    WVM.out.println ("Class server listening on Web port: " + this.port);
+    // server = new ServerSocket(this.port);
+    newListener();
+  }
 
-    /**
-     * Returns an array of bytes containing the bytecodes for
-     * the class represented by the argument <b>path</b>.
-     * The <b>path</b> is a dot separated class name with
-     * the ".class" extension removed.
-     *
-     * @return the bytecodes for the class
-     * @exception ClassNotFoundException if the class corresponding
-     * to <b>path</b> could not be loaded.
-     * @exception IOException if error occurs reading the class
-     */
-    public abstract byte[] getBytes(String path) throws IOException, ClassNotFoundException;
-
-    static Hashtable bytecodeCache = new Hashtable();
-  
-    /**
-     * The "listen" thread that accepts a connection to the
-     * server, parses the header to obtain the class file name
-     * and sends back the bytecodes for the class (or error
-     * if the class is not found or the response was malformed).
-     */
-    public void run()
-    {
-        Socket socket;
-
-        // accept a connection
-        try
-        {
-            socket = server.accept();
-        }
-        catch (IOException e)
-        {
-            WVM.out.println("Class Server died: " + e.getMessage());
-            // e.printStackTrace();
-            return;
-        }
-
-        // create a new thread to accept the next connection
-        newListener();
-
-        try
-        {
-            DataOutputStream out =
-                new DataOutputStream(socket.getOutputStream());
-            try
-            {
-                // get path to class file from header
-                BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                String path = getPath(in);
-                // retrieve bytecodes
-                byte[] bytecodes = getBytes(path);
-
-                // cache the bytecodes to be sent out: added Gskc @ 21March2001
-                if (!bytecodeCache.containsKey(path)) {
-                  WVM.out.println("Caching bytecode for class: " + path);
-                  bytecodeCache.put(path, bytecodes);
-                }
-
-                // send bytecodes in response (assumes HTTP/1.0 or later)
-                try
-                {
-                    out.writeBytes("HTTP/1.0 200 OK\r\n");
-                    out.writeBytes("Content-Length: " + bytecodes.length + "\r\n");
-                    out.writeBytes("Content-Type: application/java\r\n\r\n");
-                    out.write(bytecodes);
-                    out.flush();
-                    // WVM.out.println("Wrote out to http client");
-                }
-                catch (IOException ie)
-                {
-                    return;
-                }
-
-            }
-            catch (Exception e)
-            {
-                // write out error response
-                out.writeBytes("HTTP/1.0 400 " + e.getMessage() + "\r\n");
-                out.writeBytes("Content-Type: text/html\r\n\r\n");
-                out.flush();
-            }
-
-        }
-        catch (IOException ex)
-        {
-            // eat exception (could log error to log file, but
-            // write out to stdout for now).
-            WVM.out.println("error writing response: " + ex.getMessage());
-            ex.printStackTrace();
-
-        }
-        finally
-        {
-            try
-            {
-                socket.close();
-            }
-            catch (IOException e)
-            {
-            }
-        }
-    }
+  /**
+   * Returns an array of bytes containing the bytecodes for
+   * the class represented by the argument <b>path</b>.
+   * The <b>path</b> is a dot separated class name with
+   * the ".class" extension removed.
+   *
+   * @return the bytecodes for the class
+   * @exception ClassNotFoundException if the class corresponding
+   * to <b>path</b> could not be loaded.
+   * @exception IOException if error occurs reading the class
+   */
+  public abstract byte[] getBytes(String path) throws IOException, ClassNotFoundException;
+  public static Hashtable bytecodeCache = new Hashtable();
     
-    public void shutdown()
-  {
-    WVM.out.println ("Shutting down Class Server ...");
-    try
-    {
-      server.close();
+  /**
+   * The "listen" thread that accepts a connection to the
+   * server, parses the header to obtain the class file name
+   * and sends back the bytecodes for the class (or error
+   * if the class is not found or the response was malformed).
+   */
+  public void run() {
+    Socket socket;
+    // accept a connection
+    try {
+      socket = server.accept();
+      // create a new thread to accept the next connection
+      newListener();
+    } catch (IOException e) {
+      WVM.out.println("Class Server died: " + e.getMessage());
+      // e.printStackTrace();
+      return;
     }
-    catch (IOException e)
-    { }
+
+    try {
+      DataOutputStream out = new DataOutputStream(socket.getOutputStream());
+      try {
+        // get path to class file from header
+        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        String path = getPath(in);
+        // retrieve bytecodes
+        byte[] bytecodes = getBytes(path);
+    		// WVM.out.println("Retrieved bytecodes: " + bytecodes.length);
+
+        // cache the bytecodes to be sent out: added Gskc @ 21March2001
+        if (!bytecodeCache.containsKey(path)) {
+          // WVM.out.println("Caching bytecode for class: " + path);
+          bytecodeCache.put(path, bytecodes);
+        }
+
+				// okay, the bytecode is definitely available locally
+				// TODO: update the BAG-MULTISET for the http client
+				InetAddress ip = socket.getInetAddress();
+				int port = socket.getPort();
+				// WVM.out.println("ip: " + ip);
+				// WVM.out.println("port: " + port);
+				// this will pose a problem: how do we figure out which process
+				// on the remote site made this request ... ie which BAG-MULTISET
+				// do we update for this http request?
+
+
+        // send bytecodes in response (assumes HTTP/1.0 or later)
+        try {
+          out.writeBytes("HTTP/1.0 200 OK\r\n");
+          out.writeBytes("Content-Length: " + bytecodes.length + "\r\n");
+          out.writeBytes("Content-Type: application/java\r\n\r\n");
+          out.write(bytecodes);
+          out.flush();
+          // WVM.out.println("Wrote out to http client");
+        } catch (IOException ie) {
+          return;
+        }
+      } catch (Exception e) {
+        // write out error response
+        out.writeBytes("HTTP/1.0 400 " + e.getMessage() + "\r\n");
+        out.writeBytes("Content-Type: text/html\r\n\r\n");
+        out.flush();
+      }
+    } catch (IOException ex) {
+      // eat exception (could log error to log file, but
+      // write out to stdout for now).
+      WVM.out.println("error writing response: " + ex.getMessage());
+      ex.printStackTrace();
+    } finally {
+      try {
+        socket.close();
+      } catch (IOException e) { }
+    }
+  }
+      
+  public void shutdown() {
+    WVM.out.println ("Shutting down Class Server ...");
+    try {
+      server.close();
+    } catch (IOException e) { }
     WVM.out.println ("Class Server shut down");
   }
 
-    /**
-     * Create a new thread to listen.
-     */
-    private void newListener()
-    {
-        (new Thread(this)).start();
+  /**
+   * Create a new thread to listen.
+   */
+  private void newListener() {
+    (new Thread(this)).start();
+  }
+
+  /**
+   * Returns the path to the class file obtained from
+   * parsing the HTML header.
+   */
+  private static String getPath(BufferedReader in) throws IOException {
+    String line = in.readLine();
+    // WVM.out.println(" + + + request is: " + line);
+    String path = "";
+    // extract class from GET line
+    if (line.startsWith("GET /")) {
+      line = line.substring(5, line.length()-1).trim();
+      int index = line.indexOf(".class ");
+      if (index != -1) {
+        path = line.substring(0, index).replace('/', '.');
+        // WVM.out.println ("path is: " + path);
+      }
     }
 
-    /**
-     * Returns the path to the class file obtained from
-     * parsing the HTML header.
-     */
-    private static String getPath(BufferedReader in)     throws IOException
-    {
-        String line = in.readLine();
-        // WVM.out.println("\trequest is: " + line);
-        String path = "";
-
-        // extract class from GET line
-        if (line.startsWith("GET /"))
-        {
-            line = line.substring(5, line.length()-1).trim();
-
-            int index = line.indexOf(".class ");
-            if (index != -1)
-            {
-                path = line.substring(0, index).replace('/', '.');
-                // WVM.out.println ("\tpath is: " + path);
-            }
-        }
-
-        // eat the rest of header
-        do
-        {
-            line = in.readLine();
-            // WVM.out.println ("\t" + line);            
-
-        } while ((line.length() != 0) && (line.charAt(0) != '\r') && (line.charAt(0) != '\n'));
-
-        if (path.length() != 0)
-        {
-            // WVM.out.println("Edited: gskc, 19Feb01 --- returning path: " + path);
-            return path;
-        }
-        else
-        {
-            throw new IOException("Malformed Header");
-        }
+    // eat the rest of header
+    do {
+      line = in.readLine();
+      // WVM.out.println (" + + + " + line);            
+    } while ((line.length() != 0) && (line.charAt(0) != '\r') && (line.charAt(0) != '\n'));
+    if (path.length() != 0) {
+      // WVM.out.println("Edited: gskc, 19Feb01 --- returning path: " + path);
+      return path;
+    } else {
+      throw new IOException("Malformed Header");
     }
+  }
 }
-

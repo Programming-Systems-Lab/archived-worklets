@@ -28,7 +28,7 @@ abstract class WJackCondition {
       throw (new IllegalWJOperationException("Can only START a WAITING WorkletJunction"));
     }
     _wjunc._state = WorkletJacket.STATE_RUNNING;
-    _wkl.execute();
+    (new Thread(_wkl)).start();
   }
   abstract public void interrupt() throws IllegalWJOperationException;
   abstract public void terminate() throws IllegalWJOperationException;

@@ -68,9 +68,8 @@ class WVM_Transporter extends Thread {
 
     _wvm = wvm;
     _loader = null;
-    start();
   }
-  
+
   void shutdown() {
     _isActive = false;
     try {
@@ -78,6 +77,7 @@ class WVM_Transporter extends Thread {
     } catch (IOException e) { }
   }
   
+  HashSet classHashSet;
   public void run() {
     
     while (!_isActive) {
@@ -96,10 +96,16 @@ class WVM_Transporter extends Thread {
         ObjectInputStream ois = new ObjectInputStream(s.getInputStream()) {
           protected Class resolveClass(ObjectStreamClass v) throws IOException, ClassNotFoundException {
             Class c = Class.forName(v.getName(), true, _loader);
-            WVM.out.println("Trying to resolve class: " + c);
+            // WVM.out.println("In custom ObjectInputStream, trying to resolve class: " + c);
             return ( (c == null) ? super.resolveClass(v) : c );
           }
         };
+
+        classHashSet = new HashSet();
+
+        String rHost = ois.readUTF();
+        String rName = ois.readUTF();
+        int rPort = ois.readInt();
 
         int numJunctions = ois.readInt();
         while (numJunctions-- > 0) {
@@ -108,6 +114,7 @@ class WVM_Transporter extends Thread {
           try {
             addCodebase(codebase);
             Class loadCl = _loader.loadClass(cName);
+            // WVM.out.println("finally loaded class: " + loadCl);
           } catch (ClassNotFoundException e) {
             WVM.out.println ("Class " + cName + " could not be loaded from codebase: " + codebase);
             e.printStackTrace();
@@ -115,19 +122,33 @@ class WVM_Transporter extends Thread {
             continue MAIN_LOOP;
           }
         }
+
         Worklet wkl = null;
         try {
-          wkl = (Worklet) ois.readObject(); // GOT PROBLEMS HERE!!!
+          wkl = (Worklet) ois.readObject();
+          // TODO: Okay, now that the LEAST REQUIRED SET (LRS) of class bytecode
+          // has been downloaded from the source WVM, send out a BytecodeRetrieverWJ
+          // to get the relevant classes, viz. all those classes that the source
+          // HTTP server served up to this WVM
+          {
+            // send out BytecodeRetrieverWJ w/ a Worklet to retrieve all URLLoaded classes
+            new BytecodeRetrieval(classHashSet, _wvm,
+              _host, _name, _port,
+              rHost, rName, rPort);
+          }
         } catch (Exception e) {
-          WVM.out.println("Got BIG problems here");
+          WVM.out.println("This is BAD!");
           e.printStackTrace();
           System.exit(0);
         }
+
+        // adding to WVM's in-tray, and *do* need to send out BytecodeRetrieval worklet
+        wkl.retrieveBytecode = true;
         _wvm.installWorklet(wkl);
       } catch (SocketException e) {
         WVM.out.println("SocketException e: " + e.getMessage());
       } catch (IOException e) {
-        WVM.out.println("IOException e: " + e.getMessage());
+        WVM.out.println("IOException in Worklet receive loop, e: " + e.getMessage());
         e.printStackTrace();
       }
       WVM.out.println();
@@ -143,10 +164,13 @@ class WVM_Transporter extends Thread {
         URL url = new URL(st.nextToken());
         urlsVec.add(url);
         count++;
-      } catch (MalformedURLException e) { }
+      } catch (MalformedURLException e) {
+        WVM.out.println("MalformedURLException in addCodebase, e: " + e.getMessage());
+      }
     }
 
-    URL urls[] = new URL[count];
+    urlsVec = new Vector(new HashSet(urlsVec));
+    URL urls[] = new URL[urlsVec.size()];
     urlsVec.toArray(urls);
     if (_loader == null) {
       _loader = new WVM_ClassLoader(urls);
@@ -162,12 +186,14 @@ class WVM_Transporter extends Thread {
       WVM.out.println("  --  Sending worklet thru sockets");
       Socket s = new Socket(targetHost, targetPort);
       ObjectOutputStream oos = new ObjectOutputStream(s.getOutputStream());
+      oos.writeUTF(_host);
+      oos.writeUTF(_name);
+      oos.writeInt(_port);
 
       {
         ClassLoader sysCll = ClassLoader.getSystemClassLoader();
         Enumeration e = wkl.getClasses();
         oos.writeInt(wkl.getNumClasses());
-
         String cName = null;
         String codebase = null;
         while (e.hasMoreElements()) {
@@ -176,35 +202,37 @@ class WVM_Transporter extends Thread {
           cName = c.getName();
           if (sysCll == cl) {
             codebase = "http://" + _host + ":" + _webPort + "/";
-            // WVM.out.println("cl==SystemClassLoader, codebase: " + codebase);
+            // WVM.out.println("class: " + cName + ", codebase: " + codebase);
           } else {
             URL url = cl.getResource(cName.replace('.', '/') + ".class");
-            codebase = url.getProtocol() + "://" + url.getHost() + url.getPort() + "/";
-            // WVM.out.println("cl!=SystemClassLoader, codebase: " + codebase);
+            codebase = url.getProtocol() + "://" + url.getHost() + ":" + url.getPort() + "/";
+            WVM.out.println("class: " + cName + ", codebase: " + codebase);
           }
+          // WVM.out.println("codebase: " + codebase);
+          oos.writeUTF(cName);
+          oos.writeUTF(codebase);
         }
-        // WVM.out.println("codebase: " + codebase);
-        oos.writeUTF(cName);
-        oos.writeUTF(codebase);
       }
 
+      // TODO: set up the BAG-MULTISET in the ClassFileServer so that the 
+      // incoming BytecodeRetrieverWJ can get the data it needs
       oos.writeObject(wkl);
-      // WVM.out.println("sent out wj to target: " + wkl);
-			oos.close();
+      WVM.out.println("sent out wj to target: " + wj);
+      oos.close();
     } catch (InvalidClassException e) {
-      WVM.out.println(e.getMessage());
+      WVM.out.println("InvalidClassException in sendWorklet, e: " + e.getMessage());
       e.printStackTrace();
     } catch (NotSerializableException e) {
-      WVM.out.println(e.getMessage());
+      WVM.out.println("NotSerializableException in sendWorklet, e: " + e.getMessage());
       e.printStackTrace();
     } catch (UnknownHostException e) {
-      WVM.out.println(e.getMessage());
+      WVM.out.println("UnknownHostException in sendWorklet, e: " + e.getMessage());
       e.printStackTrace();
     } catch (SecurityException e) {
-      WVM.out.println(e.getMessage());
+      WVM.out.println("SecurityException in sendWorklet, e: " + e.getMessage());
       e.printStackTrace();
     } catch (IOException e) {
-      WVM.out.println(e.getMessage());
+      WVM.out.println("IOException in sendWorklet, e: " + e.getMessage());
       e.printStackTrace();
     }
   }

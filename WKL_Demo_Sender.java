@@ -186,11 +186,11 @@ public class WKL_Demo_Sender extends JFrame implements Serializable {
         gbc.weightx = 0.0;
         gbc.gridwidth = 1; // Reset to default
         
-        out.print("Added a new Junction");
-
         // Disable other buttons: s.t. cannot add junctions or send WKL until done
         addJunc.setEnabled(false);
         sendWorklet.setEnabled(false);
+        tfHost.requestFocus();
+        tfPort.setNextFocusableComponent(okButton);
 
         okButton.addActionListener(new ActionListener() {
           public void actionPerformed(ActionEvent ae) {
@@ -202,13 +202,16 @@ public class WKL_Demo_Sender extends JFrame implements Serializable {
                 throw (new NumberFormatException("Invalid port number"));
               }
               InetAddress.getByName(wklHost);
-              wkl.addJunction(new WKLDemo_WorkletJunction(wklHost, wklName, wklPort));
+              WorkletJunction wj = new WKLDemo_WorkletJunction(wklHost, wklName, wklPort);
+              wkl.addJunction(wj);
+              out.print("Added a new Junction: " + wj);
               okButton.setEnabled(false);
               addJunc.setEnabled(true);
               sendWorklet.setEnabled(true);
               tfHost.setEditable(false);
               tfName.setEditable(false);
               tfPort.setEditable(false);
+              addJunc.grabFocus();
             } catch (NumberFormatException e) {
               out.println("Must specify a valid number: " + e.getMessage());
             } catch (UnknownHostException e) {
@@ -321,6 +324,8 @@ class StartupDialog extends JDialog {
     out = WKL_Demo_Sender.outMain;
     WVM.out = WKL_Demo_Sender.outMain;
     WKL_Demo_Sender.out = WKL_Demo_Sender.outMain;
+    WVM.out.println(startupTextArea.getText());
+    WVM.out.println("");
   }
 
   private static final Color bg = new Color(22, 106, 175);
