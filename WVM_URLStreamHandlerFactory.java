@@ -63,7 +63,7 @@ class WVM_URLConnection extends HttpURLConnection {
     // is = new BufferedInputStream(s.getInputStream());
     is = s.getInputStream();
     connected = true;
-    try { Thread.currentThread().sleep(5000); } catch (InterruptedException ie) { }
+    // try { Thread.currentThread().sleep(5000); } catch (InterruptedException ie) { }
     WVM.out.println(" ~ ~ ~ ~ ~ in connect: " + url + ", is: " + is.available());
   }
 
