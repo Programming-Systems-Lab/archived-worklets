@@ -52,9 +52,15 @@ class WVM_RMI_Transporter extends WVM_Transporter {
 
   void setupRegistry() {
     // Create RMI Registry
+    WVM.out.println("Creating RMI Registry: " + _host + ":" + _port);
     try {
-      WVM.out.println("Creating RMI Registry: " + _host + ":" + _port);
-      rmiRegistry = LocateRegistry.createRegistry(9100);
+      _port = Integer.parseInt(System.getProperty("WVM_RMI_PORT"));
+    } catch (NumberFormatException nfe) {
+      _port = WVM_Host.PORT;
+    }
+
+    try {
+      rmiRegistry = LocateRegistry.createRegistry(_port);
       registryService = true;
     } catch (RemoteException e) {
       WVM.out.println("Could not create the RMI Registry");
@@ -229,7 +235,7 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         // TODO: set up the BAG-MULTISET in the ClassFileServer so that the 
         // incoming BytecodeRetrieverWJ can get the data it needs
         wvmHost.receiveWorklet(wkl);
-				return true;
+        return true;
       } catch (NotBoundException e) {
         WVM.out.println("NotBoundException: " + e.getMessage());
         // e.printStackTrace();
@@ -243,8 +249,8 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         // e.printStackTrace();
         throw(e);
       } finally {
-				return false;
-			}
+        return false;
+      }
     }
 
     public Date rejoinRegistry() throws RemoteException {
