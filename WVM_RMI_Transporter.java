@@ -223,12 +223,13 @@ class WVM_RMI_Transporter extends WVM_Transporter {
       _wvm.installWorklet(wkl);
     }
 
-    public void sendWorklet(Worklet wkl, WorkletJunction wj) throws RemoteException {
+    public boolean sendWorklet(Worklet wkl, WorkletJunction wj) throws RemoteException {
       try {
         WVM_Host wvmHost = (WVM_Host) Naming.lookup("//" + wj._host + ":" + _port + "/" + wj._name);
         // TODO: set up the BAG-MULTISET in the ClassFileServer so that the 
         // incoming BytecodeRetrieverWJ can get the data it needs
         wvmHost.receiveWorklet(wkl);
+				return true;
       } catch (NotBoundException e) {
         WVM.out.println("NotBoundException: " + e.getMessage());
         // e.printStackTrace();
@@ -241,7 +242,9 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         WVM.out.println("RemoteException: " + e.getMessage());
         // e.printStackTrace();
         throw(e);
-      }
+      } finally {
+				return false;
+			}
     }
 
     public Date rejoinRegistry() throws RemoteException {
