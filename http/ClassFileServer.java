@@ -1,15 +1,28 @@
-// Copyright MageLang Institute; Version $Id$
-// modified by Peppo Valetto
-// modified by Gaurav S. Kc [19 February, 2001]
 /*
- * Copyright (c) 1996, 1996, 1997 Sun Microsystems, Inc. All Rights Reserved.
+ * @(#)ClassFileServer.java
  *
+ * Copyright (c) 1996, 1996, 1997 Sun Microsystems, Inc.p All Rights Reserved.
  * SUN MAKES NO REPRESENTATIONS OR WARRANTIES ABOUT THE SUITABILITY OF THE
  * SOFTWARE, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
  * PURPOSE, OR NON-INFRINGEMENT. SUN SHALL NOT BE LIABLE FOR ANY DAMAGES
  * SUFFERED BY LICENSEE AS A RESULT OF USING, MODIFYING OR DISTRIBUTING
  * THIS SOFTWARE OR ITS DERIVATIVES.
+ *
+ * Copyright (c) 2001: Copyright MageLang Institute
+ *
+ * Copyright (c) 2001: The Trustees of Columbia University in the City of New York.  All Rights Reserved
+ *
+ * Copyright (c) 2001: @author Peppo Valetto
+ * modified by Peppo Valetto
+ * modified by Gaurav S. Kc [19 February, 2001]
+ * Last modified by: Dan Phung (dp2041@cs.columbia.edu)
+ *
+ * CVS version control block - do not edit manually
+ *  $RCSfile$
+ *  $Revision$
+ *  $Date$
+ *  $Source$
  */
 package psl.worklets.http;
 
@@ -32,9 +45,9 @@ import psl.worklets.*;
 public class ClassFileServer extends ClassServer {
   private String default_codebase = null;
   private Vector aliases;
-  
+
   private final static int DefaultServerPort = 9180;
-  
+
   /**
    * Constructs a ClassFileServer.
    *
@@ -46,20 +59,20 @@ public class ClassFileServer extends ClassServer {
   }
 
   public ClassFileServer(int port, String codebase, WVM_SSLSocketFactory wvm_sf) throws IOException {
-    this("http", "localhost", port, codebase, null);  }  
-  public ClassFileServer(String protocol, String host, int port, String codebase, WVM_SSLSocketFactory wvm_sf) 
+    this("http", "localhost", port, codebase, null);  }
+  public ClassFileServer(String protocol, String host, int port, String codebase, WVM_SSLSocketFactory wvm_sf)
     throws IOException {
-    
+
     super(port, wvm_sf);
     this.default_codebase = codebase;
     aliases = new Vector();
-    
+
     String sysPath = System.getProperty("java.class.path");
     String separator = System.getProperty("path.separator");
     StringTokenizer cpTok = new StringTokenizer(sysPath, separator);
     if (WVM.DEBUG(4)) WVM.out.println("ClassPath is: " + sysPath);
     String token;
-    
+
     while (cpTok.hasMoreTokens()) {
       token = cpTok.nextToken();
       if (token.compareTo(".") == 0) {
@@ -67,15 +80,15 @@ public class ClassFileServer extends ClassServer {
       }
       aliases.addElement(token);
       if (WVM.DEBUG(5)) WVM.out.println("\t" + token);
-    }  
+    }
     if (WVM.DEBUG(5)) WVM.out.println("Ended ClassFileServer");        toString = protocol + "://" + host + ":" + getWebPort() + "/";
   }
-  
-  public int getWebPort () { return port; }  
+
+  public int getWebPort () { return port; }
   public Vector getAliases() { return aliases; }  private final String toString;
-  public String toString () { return toString; }  
-  
-  
+  public String toString () { return toString; }
+
+
   /**
    * Returns an array of bytes containing the bytecodes for
    * the class represented by the argument <b>path</b>.
@@ -89,7 +102,7 @@ public class ClassFileServer extends ClassServer {
   public byte[] getBytes(String path) throws IOException, ClassNotFoundException {
     byte[] bytecodes = null;
     File f = null;
-    
+
     if (WVM.DEBUG(3)) WVM.out.println ("ClassFileServer.getBytes(" + path + ")");
 
     if (default_codebase != null) {
@@ -108,13 +121,13 @@ public class ClassFileServer extends ClassServer {
         }
       }
     }
-    
+
     // at this point we have to check aliases
     if (WVM.DEBUG(3)) WVM.out.println (aliases.size() + " aliases to check");
     Iterator iter = aliases.iterator();
-    
+
     while (iter.hasNext()) {
-      
+
       // WVM.out.println ("Iterating on aliases ...");
       String cpItem = (String) iter.next();
       // WVM.out.println("Classpath for classFileServer: " + cpItem);
@@ -122,7 +135,7 @@ public class ClassFileServer extends ClassServer {
       if (WVM.DEBUG(3)) WVM.out.println("findFile returned: " + f);
       if (f!= null && f.exists() && !f.isDirectory()) {
         if (WVM.DEBUG(2)) WVM.out.println ("Path: " + f.getPath() + ", name: " + f.getName());
-        String cpItemDup = cpItem.toLowerCase();        
+        String cpItemDup = cpItem.toLowerCase();
         if (f.isFile() && (cpItemDup.endsWith(".jar") || cpItemDup.endsWith(".zip"))) {
           bytecodes = jarExtract(f, path);
           if (bytecodes != null) {
@@ -131,35 +144,35 @@ public class ClassFileServer extends ClassServer {
         } else {
           return classExtract(f);
         }
-      }  
-    }  
-    
+      }
+    }
+
     if (f == null || !f.exists()) {
       // WVM.out.println( path + " Not Found" );
       throw new IOException("Class cannot be served " + path);
     }
-    
+
     return bytecodes;
-  }    
+  }
 
   private byte[] classExtract(File f)  throws IOException {
     if (WVM.DEBUG(2)) WVM.out.println ("\tin classExtract: " + f.getPath());
     int length = (int) f.length();
     FileInputStream fin = new FileInputStream(f);
     DataInputStream in = new DataInputStream(fin);
-    
+
     byte[] classData = new byte[length];
     in.readFully(classData);
     in.close();
     if (WVM.DEBUG(4)) WVM.out.println("\treturning from classExtract w/ " + classData.length);
     return classData;
   }
-  
+
   private byte[] jarExtract (File f, String path) throws IOException, ZipException {
     if (WVM.DEBUG(2)) WVM.out.println ("\tin jarExtract: " + f.getName());
     byte[] classData = null;
     ZipFile zipfile = new ZipFile(f);
-    
+
     // Gskc -- 1824-1810-2001
     String jarEntryName = path;
     ZipEntry zipentry = zipfile.getEntry(jarEntryName);
@@ -170,7 +183,7 @@ public class ClassFileServer extends ClassServer {
     }
 
     // WVM.out.println ("\t" + jarEntryName);
-    
+
     if (zipentry != null) {
       try {
         if (WVM.DEBUG(3)) WVM.out.println (jarEntryName + " found in JAR archive: " + zipfile.getName());
@@ -184,9 +197,9 @@ public class ClassFileServer extends ClassServer {
         e.printStackTrace();
       }
     }
-    return classData;  
+    return classData;
   }
-  
+
   private File findFile(String rootPath, String path) {
     if (WVM.DEBUG(2)) WVM.out.println ("In findFile() searching in: " + rootPath + " for: " + path);
     try {
@@ -220,7 +233,7 @@ public class ClassFileServer extends ClassServer {
       return null;
     }
   }
-  
+
 
   /**
    * Main method to create the class server that reads
@@ -252,7 +265,7 @@ public class ClassFileServer extends ClassServer {
     String keysFile = "";
     String password = "";
     WVM_SSLSocketFactory wvm_sf = null;
-    
+
     if (args.length >= 1) {
       port = Integer.parseInt(args[0]);
     }
@@ -260,7 +273,7 @@ public class ClassFileServer extends ClassServer {
     if (args.length >= 2) {
       classpath = args[1];
     }
-    
+
     if (args.length >= 3 && args.length <= 4) {
       keysFile = args[3];
       password = args[4];

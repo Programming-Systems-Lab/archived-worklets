@@ -1,9 +1,7 @@
-// Copyright MageLang Institute; Version $Id$
-// modified by Peppo Valetto
-// modified by Gaurav S. Kc [19 February, 2001]
 /*
- * Copyright (c) 1996, 1996, 1997 Sun Microsystems, Inc. All Rights Reserved.
+ * @(#)ClassFileServer.java
  *
+ * Copyright (c) 1996, 1996, 1997 Sun Microsystems, Inc.p All Rights Reserved.
  * SUN MAKES NO REPRESENTATIONS OR WARRANTIES ABOUT THE SUITABILITY OF THE
  * SOFTWARE, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
@@ -11,7 +9,20 @@
  * SUFFERED BY LICENSEE AS A RESULT OF USING, MODIFYING OR DISTRIBUTING
  * THIS SOFTWARE OR ITS DERIVATIVES.
  *
- * CopyrightVersion 1.1_beta
+ * Copyright (c) 2001: Copyright MageLang Institute
+ *
+ * Copyright (c) 2001: The Trustees of Columbia University in the City of New York.  All Rights Reserved
+ *
+ * Copyright (c) 2001: @author Peppo Valetto
+ * modified by Peppo Valetto
+ * modified by Gaurav S. Kc [19 February, 2001]
+ * Last modified by: Dan Phung (dp2041@cs.columbia.edu)
+ *
+ * CVS version control block - do not edit manually
+ *  $RCSfile$
+ *  $Revision$
+ *  $Date$
+ *  $Source$
  */
 package psl.worklets.http;
 
