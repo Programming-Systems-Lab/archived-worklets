@@ -117,14 +117,25 @@ class WVM_Transporter extends Thread {
             return ( (c == null) ? super.resolveClass(v) : c );
           }
         };
+        oos = new ObjectOutputStream(s.getOutputStream());
 
         String requestType = ois.readUTF();
         if (requestType.equals(PING_REQUEST)) {
           // ok, this is a ping request
           WVM.out.println("  --  being PINGED thru sockets");
-          oos = new ObjectOutputStream(s.getOutputStream());
-          oos.writeUTF(PING_RESPONSE);
-          oos.flush();
+          oos.writeUTF(PING_RESPONSE); oos.flush();
+          continue MAIN_LOOP;
+        } else if (requestType.equals(SENDMSG_REQUEST)) {
+          // ok, peer hostSystem @ WVM is attempting to send a message
+          WVM.out.println(" -- received a message thru sockets");
+          _wvm.receiveMessage(ois.readObject());
+          oos.writeUTF(SENDMSG_RESPONSE); oos.flush();
+          continue MAIN_LOOP;
+        } else if (requestType.equals(GETMSG_REQUEST)) {
+          // ok, peer hostSystem @ WVM is asking for a message
+          WVM.out.println(" -- received a message request thru sockets");
+          oos.writeObject(_wvm.requestMessage(ois.readObject()));
+          oos.writeUTF(GETMSG_RESPONSE); oos.flush();
           continue MAIN_LOOP;
         } else if (! requestType.equals(WORKLET_XFER)) {
           // what kinda request is this anyway?
@@ -167,7 +178,6 @@ class WVM_Transporter extends Thread {
           }
           
           // Now, send acknowledgement back to sender WVM
-          oos = new ObjectOutputStream(s.getOutputStream());
           oos.writeUTF(WORKLET_RECV);
           oos.flush();
 
@@ -180,11 +190,15 @@ class WVM_Transporter extends Thread {
         // adding to WVM's in-tray, and *do* need to send out BytecodeRetrieval worklet
         wkl.retrieveBytecode = true;
         _wvm.installWorklet(wkl);
-      } catch (SocketException e) {
-        WVM.out.println("WVM Socket died e: " + e.getMessage());
-      } catch (IOException e) {
-        WVM.out.println("IOException in Worklet receive loop, e: " + e.getMessage());
-        e.printStackTrace();
+      } catch (ClassNotFoundException cnfe) {
+        WVM.out.println("ClassNotFoundException when receiving message from peer, cnfe: " + cnfe);
+        cnfe.printStackTrace();
+      } catch (SocketException se) {
+        WVM.out.println("WVM Socket died se: " + se);
+        se.printStackTrace();
+      } catch (IOException ioe) {
+        WVM.out.println("IOException in Worklet receive loop, ioe: " + ioe);
+        ioe.printStackTrace();
       } finally {
         WVM.out.println ("\n\n    getting ready to accept worklets again");
         try {
