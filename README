@@ -1,21 +1,44 @@
-README - 13 May 2002 - Dan Phung (dp2041@cs.columbia.edu)
+README for Worklets System
+last updated 28 October 2002 - Dan Phung - dp2041@cs.columbia.edu
 
-README for JunctionPlanner project by Dan Phung.  
+If you're reading this, then you've decompressed the files succesfully
+and the Worklets System is "installed."  Remember to add the path to
+the psl directory to your classpath.
 
-Included in this tag (-r JunctionPlanner) of the worklets system is
-a suite of test applications (from Manifest): 
-Send.java		: test application using JunctionPlanner that uses iterations and interval
-SendDate.java		: "" "" that uses Date
-SendMany.java		: "" ""that deploys several WorkletJunctions
-SendNotify.java		: "" "" sends a WorkletJunction to wakeUp a referenced WorkletJunction
-getStats.java		: "" "" sends a WorkletJunction to dump the stats of a remote WVM
-Apps/Face.java		: "" "" that prints a face
-Apps/MySleep.java	: "" "" that waits for 10 seconds
-demo.sh			: shell script that runs several tests.
+To create the class files, from the psl directory type: 
+javac *.java http/*.java WVMRSL/*.java
 
-The "Send" applications contain examples of Worklets that have
-different JunctionPlanners.  The file demo.sh holds examples of how to
-use those applications.
+For updated documentation please visit
+http://www.psl.cs.columbia.edu/Worklets.  Otherwise, documentation is
+provided in this distribution in Worklets.html.  To create the API
+documentation, type: 
+javadoc *.java http/*.java WVMRSL/*.java
 
-Please feel free to email me if you have any questions on how to use 
-the test applications.
+provided in the distribution is:
+
+- source files: 
+JunctionPlanner.java	SendMany.java	      WVM_Host.java		  WVM_RMI_Transporter.java
+MultiMap.java		WorkletID.java	      WVM_HostnameVerifier.java   WVM_SSLSocketFactory.java
+OptionsParser.java	Worklet.java	      WVM.java			  WVM_Transporter.java
+RTU_RegistrarImpl.java	WorkletJunction.java  WVM_Registry.java
+RTU_Registrar.java	WVM_ClassLoader.java  WVM_RMIClassLoaderSpi.java
+http/ClassFileServer.java  http/ClassServer.java
+WVMRSL/MulticastServer.java  WVMRSL/Registration.java  WVMRSL/search.java
+
+- demos
+examples/effectGreeter.java	  examples/SystemDispatch.java	      examples/WKL_Demo_Sender.java
+examples/Greeter.java		  examples/SystemDispatchMany.java    examples/WKL_Demo_Target.java
+examples/politeGreeter.java	  examples/SystemDispatchNotify.java
+examples/probeGreeter.java	  examples/SystemDispatchStats.java
+examples/SystemDispatchDate.java  examples/testPrio.java
+
+- images for some of the demos (WKL_Demo_Sender and WKL_Demo_Target)
+images/icon16.gif  images/logs.gif	   images/SD.gif	 images/ss-target.gif
+images/icon32.gif  images/pslworklets.gif  images/ss-sender.gif  images/start.gif
+
+- misc
+testkeys		: example keysfile
+samplecerts		: example CA certificate file
+wvm_properties		: example WVM File
+Makefile		: Makefile for assisting with program build
+WVMRSL/README.PSLLRS	: README pertinent to WVMRSL
