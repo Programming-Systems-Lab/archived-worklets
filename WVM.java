@@ -33,7 +33,8 @@ public final class WVM extends Thread {
   }
 
   public WVM(Object system, String host, String name) {
-    this(system, host, name, WVM_Host.PORT);
+    this(system, host, name, WVM_Host.PORT+1);
+    // cannot have the WVM_Transporter listen on port: WVM_Host.PORT !!!
   }  
 
   public WVM(Object system, String host, String name, int port) {
