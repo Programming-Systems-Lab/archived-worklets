@@ -59,7 +59,8 @@ GOOD_BLOCK:
           // Upgrade url in _urlSet
           break GOOD_BLOCK;
         } catch (IOException ioe) {
-          ioe.printStackTrace();
+          // ioe.printStackTrace();
+          WVM.out.println("IOException: ioe " + ioe.getMessage());
         }
       }
       throw (new ClassNotFoundException("Class: " + name + " not found in URLs"));

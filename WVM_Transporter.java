@@ -80,14 +80,25 @@ class WVM_Transporter extends Thread {
     }
 
     _wvm = wvm;
+    try {
+      _loader = new WVM_ClassLoader_New(new URL[] { new URL("http://localhost:" + _webserver.getWebPort() + "/") } );
+    } catch (MalformedURLException murle) {
+      murle.printStackTrace(WVM.out);
+      _loader = new WVM_ClassLoader_New(new URL[] { });
+    }
+    
+    /*
     Vector urlsVec = _webserver.getAliases();
     URL urls[] = new URL[urlsVec.size()];
     for (int i=0; i<urls.length; i++) {
       try {
-        urls[i] = new URL("" + urlsVec.elementAt(i));
-      } catch (MalformedURLException murle) { }
+        urls[i] = new URL("file:" + urlsVec.elementAt(i));
+      } catch (MalformedURLException murle) {
+        murle.printStackTrace(WVM.out);
+      }
     }
     _loader = new WVM_ClassLoader_New(urls);
+    */
   }
 
   void shutdown() {
