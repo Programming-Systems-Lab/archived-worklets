@@ -1,8 +1,8 @@
 03 October 2001
 ==============
   - increase capability of SystemDispatch:
-    + add ability to pass cmdLine params to app being dispatched
-    + add ability to transfer files from local FS to target site
+    + add ability to pass cmdLine params to app being dispatched      ;)
+    + add ability to transfer files from local FS to target site      ;)
 
 24 July 2001
 ============

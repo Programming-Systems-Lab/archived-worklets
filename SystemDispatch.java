@@ -30,7 +30,7 @@ public class SystemDispatch implements Serializable {
 
     final String App = args[3];
     final Vector appArgs = new Vector();
-    final Vector appFiles = new Vector();
+    final Hashtable appFiles = new Hashtable();
     int i;
 
     for (i=4; i<args.length; i++) {
@@ -39,7 +39,7 @@ public class SystemDispatch implements Serializable {
     }
 
     for (; i<args.length; i+=2) {
-      if ("-f".equalsIgnoreCase(args[i])) appFiles.add(args[i+1]);
+      if ("-f".equalsIgnoreCase(args[i])) loadFile(args[i+1], appFiles);
     }
 
     try {
@@ -52,6 +52,24 @@ public class SystemDispatch implements Serializable {
         private final String methodName = "main";
         private final String [] parameters = new String[appArgs.size()];
         private final Class [] parameterTypes = new Class[] { String[].class };
+
+        public void init(Object _system, WVM _wvm) {
+          // get write permissions here?
+          String fName;
+          Enumeration e = appFiles.keys();
+          while (e.hasMoreElements()) {
+            fName = (String) e.nextElement();
+            try {
+              FileWriter fw = new FileWriter(new File(fName));
+              fw.write((char []) appFiles.get(fName));
+              fw.close();
+              System.out.println("  wrote file: " + fName);
+            } catch (IOException ioe) {
+              System.out.println("  could not write file: " + fName);
+            }
+          }
+        }
+
         public void execute() {
           WVM.out.println("\t --- Totally New Component ---");
           try {
@@ -93,6 +111,18 @@ public class SystemDispatch implements Serializable {
       e.printStackTrace();
       System.exit(0);
     } 
+  }
+  private static void loadFile(String fName, Hashtable appFiles) {
+    try {
+      File f = new File(fName);
+      char contents[] = new char[(int) f.length()];
+      FileReader fr = new FileReader(f);
+      fr.read(contents, 0, contents.length);
+      fr.close();
+      appFiles.put(fName, contents);
+    } catch (IOException ioe) {
+      System.out.println("  could not load: " + fName);
+    }
   }
 }
 
