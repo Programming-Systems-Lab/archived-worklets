@@ -49,15 +49,16 @@ public class SendDate implements Serializable {
 
 	    // **************** ADDING THE PLANNER ********************** //
 	    
-	    Date date = new Date(year, month, day, hour, minute);
-	    JunctionPlanner jp = new JunctionPlanner(date); // jp = junction planner 
+            Calendar cal = Calendar.getInstance();
+            cal.set(1900+year, month, day, hour, minute);
+            JunctionPlanner jp = new JunctionPlanner(cal.getTime()); // jp = junction planner 
 	    WorkletID id = new WorkletID("dated junction");
 
 	    // **************** ADDING THE WORKLET JUNCTION ********************** //
 
 	    Worklet wkl = new Worklet(originJunction);
 
-	    wkl.addJunction(new WorkletJunction(rHost, rName, rPort, id, jp) {
+	    wkl.addJunction(new WorkletJunction(rHost, rName, -1, rPort, false, id, jp) {
 
 		    private final String methodName = "main";
 		    // private final String [] parameters = new String[appArgs.size()];

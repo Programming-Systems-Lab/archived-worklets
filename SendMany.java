@@ -61,8 +61,8 @@ public class SendMany implements Serializable {
 		String newlabel = label + i;
 		WorkletID id = new WorkletID(newlabel);
 
-		System.out.println("adding workletJunction: " + id);
-		wkl.addJunction(new WorkletJunction(rHost, rName, rPort, true, id, jp) {
+		WVM.out.println("adding workletJunction: " + id);
+		wkl.addJunction(new WorkletJunction(rHost, rName, -1, rPort, true, id, jp) {
 
 			private final String methodName = "main";
 			private final String [] parameters = new String[appArgs.size()];
@@ -80,15 +80,15 @@ public class SendMany implements Serializable {
 				FileWriter fw = new FileWriter(new File(fName));
 				fw.write((char []) appFiles.get(fName));
 				fw.close();
-				System.out.println("  wrote file: " + fName);
+				WVM.out.println("  wrote file: " + fName);
 			    } catch (IOException ioe) {
-				System.out.println("  could not write file: " + fName);
+				WVM.out.println("  could not write file: " + fName);
 			    }
 			}
 		    }
 
 		    public void execute() {
-			System.out.println(" <----- WorkletJunction.execute() (implemented in SendMany) ----->");
+			WVM.out.println(" <----- WorkletJunction.execute() (implemented in SendMany) ----->");
 
 			try {
 			    // OLDER STUFF - 17:28:03:10:2001 appClass.newInstance();

@@ -1,0 +1,69 @@
+7 September 2002 - dp2041@cs.columbia.edu
+ns = non-secure
+ s = secure
+
+------------ WVM_RMI_Registry ------------
+: binding
+test				expected	found		pass?
+ns-registry && ns-server	<true +>        <true +>	 +
+ns-registry && s-server		<true +>	<true +>	 +
+s-registry &&  ns-server	<true ->	<true ->	 +
+s-registry &&  s-server		<true +>	<true +>	 +
+
+: shutdown, broadcast of registry restart
+test				expected	found		pass?
+(ns-reg) ns-server && ns-server	<true +>	<true +>	+
+(ns-reg) ns-server && s-server	<true +>	<true +>	+
+(ns-reg)  s-server && ns-server	<true +>	<true +>	+
+(ns-reg)  s-server &&  s-server	<true +>	<true +>	+
+(s-reg)   s-server &&  s-server	<true +>	<true +>	+
+- for the rest of the (s-reg) possibilities, ns-servers could not even
+bind to the registry, thus the other tests are irrelevant.
+
+------------ WVM_HostnameVerifier ------------
+the hostname verifier is only used when secure transport and the class
+loader are used.
+: hosts allow
+test				expected	found		pass?
+none specified			<true ->	<true ->	 +
+specifiy localhost		<true +>	<true +>	 +
+
+: hosts allow+deny
+test				expected	found		pass?
+none specified			<true +>	<true +>	 +
+specify localhost		<true ->	<true ->	 +
+
+------------ WVM_RMI_Transporter ------------
+: sending of worklets through the RMI server, no class loading
+test				expected	found		pass?
+ns-server to ns-server		<true +>	<true +>	 +
+ns-server to s-server		<true ->	<true ->	 +
+ s-server to ns-server		<true ->	<true ->	 +
+ s-server to s-server		<true +>	<true +>	 +
+
+: sending of worklets through the RMI server, with class loading
+test				expected	found		pass?
+ns-server to ns-server		<true +>	<true +>	 +
+ns-server to s-server		<true ->
+ s-server to ns-server		<true ->
+ s-server to s-server		<true +>	<true +>	 +
+
+------------ WVM_Transporter ------------
+: sending of worklets through the server sockets, no class loading
+test				expected	found		pass?
+ns-socket to ns-socket		<true +>	<true +>	 +
+ s-socket to s-socket		<true +>	<true +>	 +
+
+: sending of worklets through the server sockets, with class loading
+test				expected	found		pass?
+ns-socket to ns-socket		<true +>	<true +>	 +
+ s-socket to s-socket		<true +>	<true +>	 +
+
+------------ Worklets ------------
+: setup three servers.
+: Worklet has three junctions.
+test				expected	found		pass?
+
+all ns-jxns, all ns-hosts	<true +>	<true +>	 +
+ns - s - s,  ns - s - s 	<true +>	<true +>	 +
+ s - s - s,   s - s - s		<true +>	<true +>	 +

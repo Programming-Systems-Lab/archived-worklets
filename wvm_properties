@@ -1,0 +1,41 @@
+# psl.worklets
+# Author: Dan Phung (dp2041@cs.columbia.edu)
+
+# Description: This is an example WVMFILE holding the parameters
+# needed for secure WVM startup.  Note that there is a field for the
+# password in this file.  It is VERY important that the security of
+# this file is set at the OS level, meaning that the permissions on
+# this file should be set accordingly.  For example, for maximum
+# security I would set the permission to user read-only.  This can be
+# done under unix with the following: 
+# chmod a-rwx wvm_properties 
+# chmod u+r wvm_properties
+
+# this first line is needed for internal purposes.
+java.rmi.server.RMIClassLoaderSpi=psl.worklets.WVM_RMIClassLoaderSpi
+
+# WVM host related parameters
+WVM_RMI_PORT=9100	# port that the rmi registry will be created on
+WVM_RMI_NAME=target	# name that the RMI server will be bound to
+
+# Security related parameters 
+WVM_KEYSFILE=testkeys	# file holding the public/private keys
+WVM_PASSWORD=passphrase	# password into the keysfile. 
+WVM_SSLCONTEXT=TLS	# SSL context instance to use
+WVM_KEYMANAGER=SunX509	# key manager implementation type
+WVM_KEYSTORE=JKS	# key store implementation type
+WVM_RNG=SHA1PRNG	# random number generator algorithm to use
+javax.net.ssl.trustStore=samplecacerts # location of the certified security certificates.
+WVM_HOSTS_ALLOW=localhost,127.0.0.1    # allowed hosts
+WVM_HOSTS_DENY=			       # denied hosts
+WVM_FILE=wvm_properties	# reference to this file
+
+# security level of the WVM.  
+# 0: no security. 
+# 1: low security = plain RMI Registry, secure RMI server, 
+#     plain and secure server sockets, and 
+#     plain and secure class loaders.
+# 2: medium security = same as 1 but with a secure RMI Registry
+# 3: high security = secure RMI Registry, secure RMI server, 
+#    secure server socket and secure class loaders.
+WVM_SECURITY_LEVEL=3

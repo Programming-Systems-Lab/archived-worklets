@@ -1,0 +1,641 @@
+% CVS version control block - do not edit manually
+% $RCSfile$
+% $Revision$
+% $Date$
+% $Source$
+
+% to compile this file into a pdf or ps use the following
+% 1) latex WorkletSecurity.tex
+% for ps: 2) dvips -K WorkletSecurity -o
+% for pdf: 2) ps2pdf WorkletSecurity.ps WorkletSecurity.pdf
+
+\documentclass[10pt]{article}
+\usepackage{doublespace}
+% \usepackage{geometry}
+% \geometry{verbose,letterpaper,lmargin=45mm,rmargin=45mm}
+
+\title{Worklet Security}
+\author{Dan Phung (dp2041@cs.columbia.edu)}
+\date{Draft of \today}
+
+% \textheight=9.3in
+% \topmargin=.2in
+\renewcommand{\baselinestretch}{1.5}
+
+\begin{document}
+
+% \begin{singlespace}
+\maketitle
+% \end{singlespace}
+
+\section{Abstract}
+
+The goal of this project was to add security features to the Worklets
+system while leaving previous functionality intact where it was
+feasible.  I found possible communication related security risks to be
+within the RMI transport layer, the WVM transporter layer and their
+associated class loaders.  Intrusions are now minimized through the
+addition of SSL (Secure Socket Layer) sockets to the RMI Registry, RMI
+sockets, WVM Transporter and associated class loaders. and a
+HostnameVerifier.  These security features require Java 1.4, which
+includes JSSE (Java Secure Sockets Extension) and JCE (Java
+Cryptography Extension).  With all previous functionally retained,
+communication between WVMs can now be authenticated to ensure peer
+validity and encrypted to uphold packet integrity.  These security
+parameters can also be tailored according to the security needs at
+each site.
+
+\section{Intro}
+
+The goal of the Worklet Security project was to analyze the Worklet
+system to determine the security hazards and to implement provisions
+for secure methods of communication that minimize those hazards.  The
+Worklet system previously had no ability to authenticate the local or
+remote WVM hosts, nor were the packets encrypted.  Without these
+features there is the possibility for the transmission and execution of
+malicious Worklets.
+
+% SYMMETRIC and ASYMMETRIC keys.
+\section{Background}
+
+As stated in the JSSE documentation: \begin{quote}``Integrity means
+that the data has not been modified or tampered with, and authenticity
+means the data indeed comes from whoever claims to have created and
+signed it.''\end{quote}
+
+Therefore, to secure the Worklet system we must validate the local and
+remote hosts and encrypt the Worklet code being sent.  The Worklet
+security system is based off of public/private keys.  One of the
+considerations in the implementation of a security architecture is
+whether to use symmetric and asymmetric keys.
+
+Symmetric algorithms involve the sharing of keys for encryption and
+decryption.  A different set of keys must be kept for each pair of
+users.  The weakness of these algorithms is that once the key is
+intercepted the security of the system is no longer viable.  The
+advantage of these algorithms is that they do not consume too much
+computing power and are faster than asymmetric algorithms.  Typical
+symmetric algorithm are DES (Data Encryption Standard), 3DES, and
+BLOWFISH.
+
+Asymmetric algorithms use pairs of public/private keys. The public key
+is used for encryption and the private key, or secret key, is used for
+decryption.  Usually the public key is shared to anyone that wants to
+encrypt data, and only the receiver keeps the private key.  Because
+the private key is kept secret the risk of the system is less than
+with symmetric keys.  A typical set of keys for a single user is thus
+a private key to decrypt incoming data and a set of public keys that
+is used to send data to peers.  Public keys are also usually digitally
+signed by third party certificate authorities (but they can be
+self-signed) to ensure their validity upon distribution.  The strength
+of this algorithm is the higher reliability in key integrity.  The
+disadvantages are that these algorithms are more complex to handle and
+usually take higher computing power and are thus much slower.  Typical
+asymmetric algorithms are RSA (Rivest, Shamir, and Adelman) and DSA
+(Digital Signature Algorithm).
+
+The JSSE implementation used in the Worklet system is a combination of
+symmetric and asymmetric
+algorithms\footnote{http://java.sun.com/j2se/1.4/docs/guide/security/jsse/JSSERefGuide.html\#HowSSLWorks}.
+It uses asymmetric key algorithms in the authentication phase of
+communication and symmetric keys to encrypt the data in the transport
+phase.  The use of both algorithms allows the advantages of both
+algorithms can be used.
+
+% this section to be the distributed Worklet Security documentation.
+\section{Program Documentation}
+The Worklet security system provides methods for securing Worklet
+transmission.  The vulnerable objects are the RMI (Remote Method
+Invocation) transport layer, the WVM (Worklet Virtual Machine)
+transport layer and the class loaders.  Other objects that have or
+provide methods for security measures are HostnameVerifier and
+WorkletJunctions.
+
+The RMI Transport layer involves an RMI registry, associated RMI
+servers and class loaders.  Only one registry can be created on a
+specific host:port to which many RMI servers can be bound.  A secure
+registry authenticates all registry calls such as server lookups,
+binds, and unbinds.  A secure RMI server uses custom secure sockets to
+authenticate and encrypt all communication.  In the instance of a
+secure server, the default RMI class loader is set to our own
+implementation that uses a class loader with secure sockets.  Both
+plain and secure RMI servers can be bound to plain registries but only
+secure RMI servers can be bound to secure registries.  Communication
+between RMI servers can only proceed plain-plain or secure-secure.
+Depending on the security level (described in the Usage section) the
+RMI server could have either only plain, only secure, or both class
+loaders available to load classes.
+
+The WVM transport layer includes server sockets and class loaders.
+Depending on the level of security the transport layer can be created
+with plain, secure, or both types of server sockets and associated
+class loaders.  
+
+A HostnameVerifier is also implemented and is used on the remote
+(receiving) end.  This object is used by the remote host if the
+hostname of the sending WVM is not recognized from the CA certificate
+file.  The specification of the hosts that are allowed and denied is
+described in the usage section.
+
+There are situations where the user of the WorkletJunctions could be
+uncertain of the security specifications at a certain WVM.  The user
+can now specify parameters that allow the users to specify which
+methods of transport (plain RMI, secure RMI, plain socket, secure
+socket) the WorkletJunction should try and in what order.  The RMI
+related methods specify what type of communication to try when looking
+up the recipient RMI server, not the actual RMI server.  The socket
+related features specify the type of socket to try connecting on.  The
+ability to specify transport methods contributes to the robustness of
+WorkletJunction communication.
+
+\subsection{Usage}
+
+Note that all previous functionality is retained.  This section
+documents the features pertinent to Worklet Security.  I make a
+delineation between the remote and local hosts.  The remote 
+host represents the intended recipient of the Worklet while the
+local host is the entity that is sending the Worklet.
+
+\subsubsection{Remote Host}
+To create a plain host you need not specify any parameters, like
+this: 
+
+\begin{verbatim}
+java psl.worklets.WVM
+\end{verbatim}
+
+The name and port of the RMI server will default to WVM\_Host and
+9100.  If a remote host is created in this manner communication will
+not be authenticated nor encrypted.  You can specify the RMI server
+name and port by using the switches -name and -port.  See java
+psl.worklets.WVM -help for option details.
+
+To create secure hosts you must specify at least the keys file,
+password, and WVM properties file (WVM file).  Because the WVM file
+must contain the keysfile and password it is usually sufficient to
+simply specify the WVM file.  The keys file is the file containing the
+public/private keys of the host and the password is the passphrase
+specified in the creation of the keysfile.  For more information on
+how to create a keysfile see the FAQ below.  The WVM file holds the
+security specifications.  These security specifications can be
+specified by setting environment variables with the -D java switch or
+on the command line.  The parameter loading precedence is:
+\begin{enumerate}
+\item Environment variables
+\item WVM file
+\item command line specification
+\end{enumerate}
+
+The WVM file contains property=value pairs separated by white space.
+The important parameters in the WVM file are the keysfile and
+password as these are used by the Worklet system at different times.
+There is also an internally needed parameter that needs to be set in
+the WVM file, namely:
+\begin{verbatim}
+java.rmi.server.RMIClassLoaderSpi=psl.worklets.WVM_RMIClassLoaderSpi
+\end{verbatim}
+
+It is \textbf{very} important that the security of this file is set at
+the operating systems level, meaning that the permissions on this file
+should be set accordingly.  For example, for maximum security I would
+set the permission to user read-only.  This can be done under Unix
+with the following:
+
+\begin{verbatim}
+chmod a-rwx wvm_properties
+chmod u+r wvm_properties
+\end{verbatim}
+
+Included with the distribution should be an example WVM file named
+``wvm\_properties''.  It should look like this: 
+
+\begin{verbatim}
+# this first line is needed for internal purposes.
+java.rmi.server.RMIClassLoaderSpi=psl.worklets.WVM_RMIClassLoaderSpi
+
+# WVM host related parameters
+WVM_RMI_PORT=9100	# port that the rmi registry will be created on
+WVM_RMI_NAME=target	# name that the RMI server will be bound to
+
+# Security related parameters 
+WVM_KEYSFILE=testkeys	# file holding the public/private keys
+WVM_PASSWORD=passphrase	# password into the keysfile. 
+WVM_SSLCONTEXT=TLS	# SSL context instance to use
+WVM_KEYMANAGER=SunX509	# key manager implementation type
+WVM_KEYSTORE=JKS	# key store implementation type
+WVM_RNG=SHA1PRNG	# random number generator algorithm to use
+javax.net.ssl.trustStore=samplecacerts # location of the certified security certificates.
+WVM_HOSTS_ALLOW=localhost,127.0.0.1 # allowed hosts
+WVM_HOSTS_DENY=			    # denied hosts
+WVM_FILE=wvm_properties	# reference to this file
+
+# security level of the WVM.  
+# 0: no security. 
+# 1: low security = plain RMI Registry, secure RMI server, 
+#     plain and secure server sockets, and 
+#     plain and secure class loaders.
+# 2: medium security = same as 1 but with a secure RMI Registry
+# 3: high security = secure RMI Registry, secure RMI server, 
+#    secure server socket and secure class loaders.
+WVM_SECURITY_LEVEL=1	
+\end{verbatim}
+
+Notice the last parameter of WVM\_SECURITY\_LEVEL.  This parameter is
+what you would modify to tailor the security level according to the
+needs at a certain WVM.  A security level of 1 is the most flexible as
+it creates a registry that will allow binding by both plain and secure
+RMI servers.  Also created with a security level of 1 are plain and
+secure server sockets and class loaders.  The only difference between
+security level 1 and 2 is that the registry is secure in the latter.
+A security level of 3 creates a WVM host that has a secure RMI server
+that must be bound to a secure registry, a secure server socket, and only
+secure class loaders.  There is a plain server socket created, but
+that is used only for internal purposes for robust registry upkeep.
+
+The WVM\_HOSTS\_ALLOW and WVM\_HOSTS\_DENY specify which hosts on the
+remote end are allowed and denied.  If no hosts are specified in both
+settings, then all hosts will be allowed.  These entries are the only
+parameters that are concatenated, meaning that if you specify these
+parameters in the system environment, the WVM file, and on the command
+line then all entries will be used.
+
+\subsubsection{Examples}
+
+
+\begin{verbatim}
+java psl.worklets.WVM -name target
+\end{verbatim}
+Create a plain host with the RMI name target on port 9100.
+
+\begin{verbatim}
+java psl.worklets.WVM -wvmfile wvm_properties
+\end{verbatim}
+Create a host according to the parameters in the WVM file.
+
+\begin{verbatim}
+java -DWVM_FILE=wvm_properties psl.worklets.WVM -name target -S 2
+\end{verbatim}
+Create a host according to the parameters in the WVM file, but with
+the RMI name target and a security level of 2.
+
+\subsubsection{Local Host}
+
+The sending of secure Worklets involves the creation of a local WVM
+host that bootstraps the Worklet into the WVM system.  Creation of
+secure Worklets and WorkletJunctions is the same as described in the
+Worklet documentation except that you need to set the WVM\_FILE system
+property to your WVM file (described above).  This can either be done
+with the -D java switch or within the application with the
+System.setProperty method.  Included in the distribution should be an
+example program ``SendSecure.java''.
+
+Here is the portion within the example program that sets the security
+parameters.  Also shown is the creation of the WVM.
+
+\begin{verbatim}
+psl.worklets.OptionsParser op = new psl.worklets.OptionsParser();
+op.loadWVMFile(System.getProperty("WVM_FILE"));
+op.setWVMProperties();
+
+wvm = new psl.worklets.WVM(new Object(), InetAddress.getLocalHost().getHostAddress(), 
+                           "SendSecure", op.port, op.keysfile, op.password,
+                           op.ctx, op.kmf, op.ks, op.rng, op.securityLevel);
+\end{verbatim}
+
+The WVM\_FILE system property was set on the command line like this: \\
+\begin{verbatim}
+java -DWVM_FILE=wvm_properties SendSecure localhost target 9101 Apps.Face 1 0 mysend
+\end{verbatim}
+
+You can also manage the WorkletJunction transport methods by setting
+the transportMethods to a combination of plainRMI, secureRMI,
+plainSocket, and secureSocket.  The plainRMI and secureRMI keywords
+specify the type of registry used by that server.  The type of server
+cannot be specified because the parameters for which type of socket to
+use is set at creation time.  The plainSocket and secureSocket
+keywords specify which type of socket to communicate with.  The
+security will always default to the ``parent'' if not set.  So if the
+Worklet.isSecure and the WorkletJunction.isSecure have not been
+specified, then the WorkletJunction will default to the security of
+the current WVM system.  The default for plain systems is plainRMI and
+plainSocket and the default for secure systems is secureRMI and
+secureSocket.  If WorkletJunction.isSecure is set and the
+WorkletJunction.isSecure has not been set then those WorkletJunctions
+will default to the security level of the Worklet.  The last, and
+highest priority level is at the WorkletJunction.  You can either use
+the isSecure method or specify the methods through the
+transportMethods function.  Using the transportMethods function alone
+is sufficient, and will override the isSecure method.  Here's an
+example of how to set the methods:
+
+\begin{verbatim}
+String[] tm = {"secureRMI", "plainRMI", "secureSocket", "plainSocket"};
+wjxn.setTransportMethods(tm);
+\end{verbatim}
+
+\section{Program Documentation - Internal}
+% need to talk about registry blah through sockets.
+This section describes added and modified features in the Worklet
+system.  These features include an SSL socket factory, robust RMI
+registry handling, an implementation of RMIClassLoaderSpi and
+HostnameVerifier, and an OptionsParser.
+
+The SSL socket factory, WVM\_SSLSocketFactory, implemented in
+the Worklet system was derived from the JSSE sample included in the
+J2SDK 1.4 distribution.  I packaged the functionality of the JSSE
+sample code together in one class and gave the user access to modify
+the security parameters.  I also have WVM\_SSLSocketFactory
+extending RMISocketFactory and implementing RMIServerSocketFactory,
+RMIClientSocketFactory, and Serializable so that this factory can also
+be used as our custom RMI socket factory.  The available methods are:
+createSocket(), createServerSocket(), getSSLSocketFactory(), and
+getSSLServerSocketFactory().  The reason why I have a private
+initFactories() method is because when the object serialized, all the
+members are instantiated as null, so they must be reinstantiated on the
+remote side.  
+
+For robust registry maintenance I modified the
+WVM\_RMI\_Transporter.shutdown() method and added a
+WVM\_Registry and RTU\_Registrar.  During WVM
+instantiation a plain socket will always be created.  This socket will
+be used by the RMI registry and server to broadcast registry creation
+and rebinding requests during shutdown, along with the normal WVM
+operations.  If the security level is 3, or high security, then the
+plain socket will only accept RMI registry and server related
+requests.  This implementation allows plain and secure RMI servers to
+bind onto a registry and communicate events related to the registry.
+The hostname, socket port number, and RMI name along with a randomly
+created key comprise the registration information needed by our
+registry to keep track of the bound servers.  I subclassed the default
+RMI Registry in WVM\_Registry to add the features of
+maintaining bound servers and restricting the rebinding method.  The
+RTU\_RegistrarImpl, an implementation of the
+RTU\_Registrar, acts as an intermediate between the registry
+and the RTU (our RMI server.)  It creates and manages the registration
+information for each server and negotiates the binding of the server
+to our registry.
+
+% need to talk about hostname verifier
+A WVM\_HostnameVerifier was also added to the Worklets system as a
+security extension.  This class was needed internally to verify hosts
+not included in the CA certs file.  This object uses the
+WVM\_HOSTS\_ALLOW and WVM\_HOSTS\_DENY system properties.  See the
+``Program Documentation '' section for details on how to
+set these.
+
+% WVM_RMIClassLoaderSpi
+The WVM\_RMIClassLoaderSpi allows us to specify the use of our own
+class loader.  The default RMI class loader and system class loader
+does not use secure sockets, nor are there ways to specify the use of
+our sockets or socket factories.  The WVM\_RMIClassLoaderSpi specifies
+our WVM\_ClassLoader which can be instructed to use secure sockets.
+The specification to the system to use our RMI class loader is done by
+setting the system environment variable as such:
+\begin{verbatim}
+java.rmi.server.RMIClassLoaderSpi=psl.worklets.WVM_RMIClassLoaderSpi.
+\end{verbatim}
+This parameter is usually put in the WVM file.  To ease the load of
+our class loader and to maintain the speed of the Worklets system, the
+WVM\_RMIClassLoaderSpi does not load the following classes: java.*,
+javax.*, sun.*, sunw.*, and psl.*
+
+I added an OptionsParser to ease the handling of the multitude
+of added parameters that can be specified.  The OptionsParser
+parses the command line as well as related environment variables and
+the WVM file.  An OptionsParser has public access and can be
+used to load in the security parameters in user programs.  For example
+of this procedure see the ``Local side'' section in the ``Program
+Documentation''.
+
+\subsection{Possible errors}
+\begin{itemize}
+
+\item The most common errors pertain to the keysfile and the file
+holding the CA certificates.  Either these files are spelled
+incorrectly when specified or the password is incorrect.  Another
+thing to check is that the permissions for the files at least give
+user read rights.
+
+\item RMI server cannot bind to registry. 
+
+Upon trying to bind a RMI server, if you get this error: 
+\begin{verbatim}
+Shutting down; cannot bind to a non-local host: 128.59.23.10java.rmi.ServerException: RemoteException occurred in server thread; nested exception is: 
+	java.rmi.UnmarshalException: Transport return code invalid
+\end{verbatim}
+
+Check that the security level of the server and registry are
+compliant.  If it is secure, then it is expecting the registry to be
+secure as well, and is thus communicating through secure protocols.
+Security levels of 0 and 1 (none, and low) can bind on the same
+registry.  Security levels of 2 and 3 (medium and high) can also bind
+together on the same registry, but cannot be matched with levels 0 and
+1.  Another issue to be aware of is the RMI class loader of the
+Registry.  If the Registry is created with a secure RMI server, the
+instatiation of the server sets the RMI class loader to our secure
+implementation and essentially sets the RMI class loader for that JVM.
+Therefore when other non-secure servers try to bind, the registry
+interacts with the secure RMI class loader, and a remote exception is
+thrown.  To prevent this from happening you should create the registry
+with a plain server.
+
+\end{itemize}
+
+\subsection{Frequently Asked Questions (FAQ)}
+\begin{itemize}
+
+\item How do I create my own public/private keystore and how
+do I self certify it?
+
+Here is an example of how to create a keystore named testkeys with the
+password asd123.  In general you do not want to specify the password
+in the command used.  When not specified on the command line the
+keytool program will prompt you for a password.  The following 
+command line should all be on the same line.
+
+keytool -genkey -dname "cn=Foo Bar, ou=Columbia University, o=PSL, \
+        c=US" -alias foobar -keypass asd123 -keystore testkeys \
+        -storepass asd123 -validity 180
+
+The example also self-certifies the keystore with a validity time of
+180 days.  A better way to certify the keystore would be to create a
+certificate request and then send it to a third party certifier (see
+Java JSSE docs).  The entries that reside in the WVM file that are
+related to the file that was just created are:
+\begin{verbatim}
+WVM_KEYSFILE=testkeys
+WVM_PASSWORD=asd123
+javax.net.ssl.trustStore=testkeys
+\end{verbatim}
+
+to view details about the keystore you can do:
+\begin{verbatim}
+keytool -list -keystore testkeys
+\end{verbatim}
+
+For for information see:  \\
+http://java.sun.com/j2se/1.4/docs/guide/security/SecurityToolsSummary.html
+
+\item Where do I find out more information about the available
+algorithms that I can use? 
+
+See the Java documentation about security.  Specifically, look at the
+JSSE and JCE docs.
+
+\item What about java policies? 
+
+In my implementation the java policies do not play a role.
+
+\end{itemize}
+
+% DONE
+\section{Conclusion}
+
+The security features implemented for the Worklet Security project
+provides the methods for secure Worklet communication.  Security
+measurements can only at best minimize the risks inherent in network
+communication and is only as effective as the awareness of the user.
+
+\section{Future Enhancements}
+\begin{itemize}
+\item have a better way to pass in the password to the WVM\_RMIClassLoaderSpi.
+\end{itemize}
+
+\end{document}
+
+DEMO
+overview the Worklets system.  show that the holes are at:
+RMI: registry-RMI server, RMI server-RMI server, RMI Class Loader
+sockets: socket-socket, ClassLoader.
+
+First we should talk about the different transports used in the
+Worklet system.
+
+RMI: 
+- true -, 
+- true +/no class loading
+- true +/with class loading
+
+sockets: 
+- true -, 
+- true +/no class loading
+- true +/with class loading
+
+Registry
+- creation of plain registry > bind to registry
+- creation of secure registry > bind to plain and secure registry
+- RMI send to plain
+- RMI send to secure
+
+power point presentation
+before security
+- danger to WVM
+- danger to worklet
+- no RMI authentication
+- no socket authetication
+- anyone can see the code being sent between sockets
+
+demo: 
+
+1) <RMI REGISTRIES>
+
+we should show that plain communication still works bring up a plain
+external registry bind both a secure and plain server to those.
+explain that these are both communicating with plain communication
+through Naming.
+
+create a secure external registry.  show how only secure 
+WVM's can bind to it.
+
+explain the plain server contacting secure server problem, and
+how if security is downgraded, it will be lost in that registry
+system.
+
+it was possible to kill a RMI host, binded to a certain name, then to
+bind another host to that name.  now the servers are authenticated
+through the registry before binding can occur (or even a lookup).
+also, only psl.worklets.WVM_RMI_Transporters can rebind.
+
+<WVM>
+
+security levels.  level 1 is everything is secure except for the
+registry.  the registry is still plain to allow binding with other
+non-secure RMI servers, also, plain sockets are still up.  level 2 is
+all secure, with the secure registry.  also, plain sockets are still
+up. level 3 is secure only. only secure rmi and sockets are available, 
+along with only secure codebases.
+
+<CLASSLOADING, CODEBASE>
+if security is set, then we have a https class server, but we
+also still the normal http server.  only if the security
+level is at 3, secure only, is only the https server up.
+
+<WVMFILE>
+explain all the fields
+show java psl.worklets.WVM --help
+explain the scaffolding of the parameters, environment, wvmfile, 
+command line.
+
+<RMIClassLoaderSpi>
+ --needs the wvmfile.  security on the file must be at the OS level, 
+setting of file permissions.  ask for other suggestions on how do this.
+
+<HOSTNAME VERIFIER>
+the HostnameVerifier is for the remote host to allow class loading.
+
+<WORLETJUNCTION>
+ability to set the transport methods.  
+
+so there are ways to go between secure and plain WVM's
+
+RMI -/-> sRMI
+
+host-remote
+WVM-WVM: only plain transports are available.
+WVM-sWVM: cannot send through RMI
+depends: securityLevel 1,2: can send through plain socket. 
+         if securityLevel 3, then cannot send through sockets.
+
+sWVM    WVM: 
+
+sWVM    sWVM: depends
+RMI, 
+
+so security is not at the workletJunction level.  it is between hosts.
+
+<KEYSFILE, CA CERTS's>
+
+So we are going to use symmteric keys.  The creation and management of
+these keys and certificates are discussed in detail with the JSSE
+documentation that is a part of Java SDK 1.4.  The tool used to create
+and manage the keystore is ``keytool.''  Here I will briefly go
+through an example of key and certificate creation.  The keystore and
+its password are the required parameters for Worklet Security that
+need to reside in the WVM file.
+
+Here is an example of how to create a keystore named testkeys
+with the password asd123.  In general you do not want to specify
+the password in the command used.  Rather, when not specified 
+on the command line the keytool program will prompt you for a
+password.
+
+keytool -genkey -dname "cn=Foo Bar, ou=PSL, o=PSL, c=US" \
+      -alias foobar -keypass asd123 -keystore testkeys \
+      -storepass asd123 -validity 180
+
+The example also self-certifies the keystore with a validity time of
+180 days.  A better way to certify the keystore would be to create a
+certificate request and then send it to a third party certifier (see
+java jssse docs).  The entries that reside in the WVM file are that
+are related to the file that was just created are:
+WVM_KEYSFILE=testkeys
+WVM_PASSWORD=asd123
+javax.net.ssl.trustStore=/home/mrgray/src/psl/worklets/testkeys
+
+to view details about the keystore you can do:
+keytool -list -keystore testkeys
+
+
+
+- The (WVM) has its own method of contacting peers to broadcast the RMI
+registry shutdown.

@@ -1,5 +1,3 @@
-package psl.worklets;
-
 /**
  *
  * Copyright (c) 2001: The Trustees of Columbia University in the City of New York.  All Rights Reserved
@@ -18,16 +16,16 @@ import java.net.*;
 import java.util.*;
 import java.lang.reflect.*;
 
-public class Send implements Serializable {
+public class SendSecure implements Serializable {
 
     public static void main(String args[]) {
 
 
-	WVM wvm = null;
-	WorkletJunction originJunction = null;
+	psl.worklets.WVM wvm = null;
+	psl.worklets.WorkletJunction originJunction = null;
 
 	if (args.length < 7) {
-	    WVM.out.println("usage: java Send <rHost> <rName> <rPort> <App> <iterations> <waitTime> <label>");
+	    System.out.println("usage: java SendSecure <rHost> <rName> <rPort> <App> <iterations> <waitTime> <label>");
 	    System.exit(0);
 	}
 	
@@ -47,30 +45,35 @@ public class Send implements Serializable {
 	try {
 	    final Class appClass = Class.forName(App);
 
-	    if (wvm == null) {
-		wvm = new WVM(new Object(), InetAddress.getLocalHost().getHostAddress(), "Send");
+	    // This is where we get the security parameters
+	    psl.worklets.OptionsParser op = new psl.worklets.OptionsParser();
+	    op.loadWVMFile(System.getProperty("WVM_FILE"));
+	    op.setWVMProperties();
+
+	    try {
+	      wvm = new psl.worklets.WVM(new Object(), InetAddress.getLocalHost().getHostAddress(), "SendSecure", op.port, 
+					 op.keysfile, op.password, op.ctx, op.kmf, op.ks, op.rng, op.securityLevel);
+	    } catch (java.net.UnknownHostException e){
 	    }
-      
 
 	    // **************** ADDING THE PLANNER ********************** //
 	    
 	    
-	    JunctionPlanner jp = new JunctionPlanner(iterations, interval); // jp = junction planner 
-	    WorkletID id = new WorkletID(label);
-
+	    psl.worklets.JunctionPlanner jp = new psl.worklets.JunctionPlanner(iterations, interval); // jp = junction planner 
+	    psl.worklets.WorkletID id = new psl.worklets.WorkletID(label);
+	    
 	    // **************** ADDING THE WORKLET JUNCTION ********************** //
 
-	    Worklet wkl = new Worklet(originJunction);
+	    psl.worklets.Worklet wkl = new psl.worklets.Worklet(originJunction);
 
-	    WorkletJunction wj = new WorkletJunction(rHost, rName, -1, rPort, false, id, jp) {
-
+	    psl.worklets.WorkletJunction wjxn = new psl.worklets.WorkletJunction(rHost, rName, -1, rPort, false, id, jp) {
 		    private final String methodName = "main";
 		    private final String [] parameters = new String[appArgs.size()];
 		    private final Class [] parameterTypes = new Class[] { String[].class };
-		    int _state = JunctionPlanner.STATE_WAITING;
+		    int _state = psl.worklets.JunctionPlanner.STATE_WAITING;
 		    // ((JunctionPlanner)jp).setParent(this);
 
-		    public void init(Object _system, WVM _wvm) {
+		    public void init(Object _system, psl.worklets.WVM _wvm) {
 			// get write permissions here?
 			String fName;
 			Enumeration e = appFiles.keys();
@@ -80,15 +83,15 @@ public class Send implements Serializable {
 				FileWriter fw = new FileWriter(new File(fName));
 				fw.write((char []) appFiles.get(fName));
 				fw.close();
-				WVM.out.println("  wrote file: " + fName);
+				System.out.println("  wrote file: " + fName);
 			    } catch (IOException ioe) {
-				WVM.out.println("  could not write file: " + fName);
+				System.out.println("  could not write file: " + fName);
 			    }
 			}
 		    }
 
 		    public void execute() {
-			WVM.out.println(" <----- WorkletJunction.execute() (implemented in Send) ----->");
+			System.out.println(" <----- WorkletJunction.execute() (implemented in SendSecure) ----->");
 
 			try {
 			    Enumeration e = appArgs.elements();
@@ -96,30 +99,34 @@ public class Send implements Serializable {
 			    appClass.getMethod(methodName, parameterTypes).invoke(null, new Object[] { parameters });
 
 			} catch (IllegalAccessException e) {
-			    WVM.out.println("Exception: " + e.getMessage());
+			    System.out.println("Exception: " + e.getMessage());
 			    e.printStackTrace();
 			} catch (IllegalArgumentException e) {
-			    WVM.out.println("Exception: " + e.getMessage());
+			    System.out.println("Exception: " + e.getMessage());
 			    e.printStackTrace();
 			} catch (InvocationTargetException e) {
-			    WVM.out.println("Exception: " + e.getMessage());
+			    System.out.println("Exception: " + e.getMessage());
 			    e.printStackTrace();
 			} catch (NoSuchMethodException e) {
-			    WVM.out.println("Exception: " + e.getMessage());
+			    System.out.println("Exception: " + e.getMessage());
 			    e.printStackTrace();
 			}
 		    }
-	      };
+		};
 
-	    wkl.addJunction(wj);
+	    // CHANGING Security level
+	    wkl.isSecure(false); // doesn't matter because the lowest level, 
+	    wjxn.isSecure(true); // ie. the worklet junction security has the highest priority
+	    // we can either set the transport methods here, or rely on the default 
+	    // method for "secure" worklet junctions
+	    String[] tm = {"secureRMI", "plainRMI", "secureSocket", "plainSocket"};
+	    wjxn.setTransportMethods(tm);
+
+	    wkl.addJunction(wjxn);
 	    wkl.deployWorklet(wvm);
 
-	} catch (UnknownHostException e) {
-	    WVM.out.println("Exception: " + e.getMessage());
-	    e.printStackTrace();
-	    System.exit(0);
 	} catch (ClassNotFoundException e) {
-	    WVM.out.println("Exception: " + e.getMessage());
+	    System.out.println("Exception: " + e.getMessage());
 	    e.printStackTrace();
 	    System.exit(0);
 	} 

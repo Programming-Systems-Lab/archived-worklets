@@ -1,7 +1,4 @@
-/*****************************************************************************/
-/***************** part of the psl.worklets package **************************/
 package psl.worklets;
-/*****************************************************************************/
 
 /* CVS version control block - do not edit manually
  *  $RCSfile$
@@ -91,7 +88,7 @@ public class JunctionPlanner implements Serializable{
       _parent = parent;
 
     } else {
-      System.err.println("Error, parent already set, cannot reset");
+      WVM.err.println("Error, parent already set, cannot reset");
     }
   }
   // ------------------------------------------------------------------- //
@@ -103,8 +100,8 @@ public class JunctionPlanner implements Serializable{
   // by the WorkletJunction to use the JunctionPlanner.
   synchronized void start(){
     if (_parent == null){
-      System.err.println(" Error, Parent not set.  You must call ");
-      System.err.println(" JunctionPlanner.init(WorketJunction) before using the JunctionPlanner.");
+      WVM.err.println(" Error, Parent not set.  You must call ");
+      WVM.err.println(" JunctionPlanner.init(WorketJunction) before using the JunctionPlanner.");
 
     } else {
       _timer = new Timer();
@@ -161,7 +158,7 @@ public class JunctionPlanner implements Serializable{
           _timerTask_done = true;
         }
       } catch (Exception e) {
-        System.out.println("Exception with JunctionPlanner wait(): " + e);
+        WVM.out.println("Exception with JunctionPlanner wait(): " + e);
       }
     }
     _state = STATE_READY;
@@ -208,7 +205,7 @@ public class JunctionPlanner implements Serializable{
     if (_interval == 0)
       _date = date;
     else 
-      System.err.println("JunctionPlanner Error, you can only change the date setting for this planner");
+      WVM.err.println("JunctionPlanner Error, you can only change the date setting for this planner");
   }
 
   synchronized Date date(){
@@ -219,7 +216,7 @@ public class JunctionPlanner implements Serializable{
     if (_date == null)
       _interval = interval;
     else 
-      System.err.println("JunctionPlanner Error, you can only change the interval setting for this planner");
+      WVM.err.println("JunctionPlanner Error, you can only change the interval setting for this planner");
   }
 
   synchronized long interval(){

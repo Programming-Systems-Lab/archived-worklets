@@ -10,7 +10,7 @@ wkl:  WVM.java WVM_Host.java WVM_Transporter.java Worklet.java WorkletJunction.j
 
 rmi: WVM_RMI_Transporter.class
 	# Creating rmi stubs/skeletons ... 
-	$(RMI) -d ../.. -classpath ../.. psl.worklets.WVM_RMI_Transporter.RTU
+	$(RMI) -d ../.. -classpath ../.. psl.worklets.WVM_RMI_Transporter.RTU psl.worklets.RTU_RegistrarImpl
 
 dm:    WKL_Demo_Sender.java WKL_Demo_Target.java
 	$(JCC) ${JCFLAGS} WKL_Demo_Sender.java WKL_Demo_Target.java

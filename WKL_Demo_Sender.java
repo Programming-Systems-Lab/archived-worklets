@@ -197,7 +197,7 @@ public class WKL_Demo_Sender extends JFrame implements Serializable {
         addJunc.setEnabled(false);
         sendWorklet.setEnabled(false);
         tfHost.requestFocus();
-        tfPort.setNextFocusableComponent(okButton);
+        // tfPort.setNextFocusableComponent(okButton);
 
         okButton.addActionListener(new ActionListener() {
           public void actionPerformed(ActionEvent ae) {

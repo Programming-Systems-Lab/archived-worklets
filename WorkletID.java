@@ -1,7 +1,4 @@
-/*****************************************************************************/
-/***************** part of the psl.worklets package **************************/
 package psl.worklets;
-/*****************************************************************************/
 
 /* CVS version control block - do not edit manually
  *  $RCSfile$
@@ -32,7 +29,7 @@ package psl.worklets;
 import java.io.*;
 import java.util.*;
 
-class WorkletID implements Serializable, Comparable{
+public class WorkletID implements Serializable, Comparable{
     static long _count; // keep track of the WorkletID's made
 
     private String _label;

@@ -30,14 +30,22 @@ public abstract class WorkletJunction implements Serializable, Runnable {
 
   // addressing info
   protected String _host;
-  // addressing info
+  protected int _rmiport = -1;
   protected String _name;
-  // addressing info
   protected int _port;
+
   protected JunctionPlanner _junctionPlanner;
   protected WorkletID _id;
-  private boolean _dropOff = false;            // tells the Worklet whether it needs to wait for the WorkletJunction to execute.
+  private boolean _dropOff = false;             // tells the Worklet whether it needs to 
+						// wait for the WorkletJunction to execute.
 
+  // security related parameters
+  private boolean _defaultSecurity = true;	// default to "parent" security
+  private boolean _isSecure = false;		// is this junction secure?
+  private String[] _transportMethods = null;	// the transport methods the Worklet Junction tries.
+  static String[] secureDefault = {"secureRMI", "secureSocket"};
+  static String[] plainDefault = {"plainRMI", "plainSocket"};
+					        
   protected transient Object _system;
   protected transient WVM _wvm;
 
@@ -47,23 +55,31 @@ public abstract class WorkletJunction implements Serializable, Runnable {
   protected Hashtable _payload;
 
   public static final int SUPER_PRIORITY = 9;
-	public static final int HIGH_PRIORITY  = 7;
-	public static final int MED_PRIORITY   = 5;
-	public static final int LOW_PRIORITY   = 1;
+  public static final int HIGH_PRIORITY  = 7;
+  public static final int MED_PRIORITY   = 5;
+  public static final int LOW_PRIORITY   = 1;
 
-  private	int _priority = MED_PRIORITY;
+  private int _priority = MED_PRIORITY;
   int _state = 0; // this is left here for backwards compatibility with WJackCondition
 
-  // ------------------------------------------------------------------------------------ //
-  // ---------------------------- SET OF CONSTRUCTORS ----------------------------------- //
-  // ------------------------------------------------------------------------------------ //
-  // This first one is the general ctor used by the others.
-  public WorkletJunction(String host, String name, int port, boolean dropOff, WorkletID id, JunctionPlanner jp) {
+  // ---------------------------- Set of Constructors ----------------------------------- //
+  public WorkletJunction(String host, String name, int rmiport, int port,
+			 boolean dropOff, WorkletID id, JunctionPlanner jp) {
     _host = host;
     _name = name;
     _port = port;
     _payload = new Hashtable();
     _dropOff = dropOff;
+    
+    if (rmiport == -1) {
+      try {
+	_rmiport = Integer.parseInt(System.getProperty("WVM_RMI_PORT"));
+      } catch (NumberFormatException nfe) {
+	_rmiport = WVM_Host.PORT;
+      }
+    } else {
+      _rmiport = rmiport;
+    }
 
     _id = id;
     if (_id != null)
@@ -74,52 +90,12 @@ public abstract class WorkletJunction implements Serializable, Runnable {
       _junctionPlanner.init(this);  // this gives the junction planner the reference to this junction.
   }
 
-  // --- These ctors NOT associated with the JunctionPlanner --- //
-  public WorkletJunction(String host, String name) {
-    this(host, name, WVM_Host.PORT, false, new WorkletID("default"), null);
-  }
-
-  public WorkletJunction(String host, int port) {
-    this(host, "WVM", port, false, new WorkletID("default"), null);
-  }
-
   public WorkletJunction(String host, String name, int port) {
-    this(host, name, port, false, new WorkletID("default"), null);
+    this(host, name, WVM_Host.PORT, port, false, new WorkletID("default"), null);
   }
 
-  public WorkletJunction(String host, String name, int port, boolean dropoff) {
-    this(host, name, port, dropoff, new WorkletID("default"), null);
-  }
 
-  public WorkletJunction(String host, String name, int port, WorkletID id) {
-    this(host, name, port, false, id, null);
-  }
-
-  public WorkletJunction(String host, String name, int port, boolean dropoff, WorkletID id) {
-    this(host, name, port, dropoff, id, null);
-  }
-
-  // --- These ctors associated with the JunctionPlanner --- //
-  public WorkletJunction(String host, String name, int port, JunctionPlanner jp) {
-    this(host, name, port, false, new WorkletID("default"), jp);
-  }
-
-  public WorkletJunction(String host, String name, int port, boolean dropoff, JunctionPlanner jp) {
-    this(host, name, port, dropoff, new WorkletID("default"), jp);
-  }
-
-  public WorkletJunction(String host, String name, int port, WorkletID id, JunctionPlanner jp) {
-    this(host, name, port, false, id, jp);
-  }
-
-  // ------------------------------------------------------------------------------------ //
-
-
-
-  // -------------------------------------------------------------------------------- //
   // -------------- Functions to change/modify WorkletJunction inards --------------- //
-  // -------------------------------------------------------------------------------- //
-
   final void setOriginWorkletJunction(WorkletJunction origin) {
     _originJunction = origin;
   }
@@ -130,7 +106,7 @@ public abstract class WorkletJunction implements Serializable, Runnable {
 
   // I should somehow check that whoever is changing my state has "permission"
   final void setState(int state){
-    System.out.println("Changing STATE: " + _junctionPlanner.state() + " -> " + state);
+    WVM.out.println("Changing STATE: " + _junctionPlanner.state() + " -> " + state);
     _junctionPlanner.setState(state);
   }
 
@@ -175,6 +151,10 @@ public abstract class WorkletJunction implements Serializable, Runnable {
     return (_host);
   }
 
+  final int getRMIPort() {
+    return (_rmiport);
+  }
+
   final String getName() {
     return (_name);
   }
@@ -190,7 +170,42 @@ public abstract class WorkletJunction implements Serializable, Runnable {
   final WorkletID id() {
     return _id;
   }
-  
+
+  public final void dropOff(boolean dropOff){
+    _dropOff = dropOff;
+  }
+
+  public final boolean dropOff(){
+    return _dropOff;
+  }
+
+  public final void isSecure(boolean isSecure){
+    _defaultSecurity = false;
+    _isSecure = isSecure;
+  }
+
+  public final boolean isSecure(){
+    if (_defaultSecurity)
+      return _worklet.isSecure();
+    else 
+      return _isSecure;
+  }
+
+  public final void setTransportMethods(String[] tm){
+    _transportMethods = tm;
+  }
+
+  public final String[] getTransportMethods(){
+    if (_transportMethods == null){
+      if (isSecure())
+	_transportMethods = secureDefault;
+      else 
+	_transportMethods = plainDefault;
+    }
+
+    return _transportMethods;
+  }
+
   // -------------- Functions to change modify WorkletJunction status --------------- //
   // The following methods are almost all completely transparent, in that it just calls
   // the JunctionPlanner's methods.
@@ -239,13 +254,5 @@ public abstract class WorkletJunction implements Serializable, Runnable {
 
   final void setDate(Date date){
     _junctionPlanner.setDate(date);
-  }
-
-  public final void dropOff(boolean dropOff){
-    _dropOff = dropOff;
-  }
-
-  public final boolean dropOff(){
-    return _dropOff;
   }
 }

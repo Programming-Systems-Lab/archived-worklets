@@ -49,50 +49,50 @@ public class testPrio extends Thread implements Serializable {
 
 	    Worklet wkl = new Worklet(originJunction);
 	    
-	    WorkletJunction highprio = new WorkletJunction(rHost, rName, rPort, id) {
+	    WorkletJunction highprio = new WorkletJunction(rHost, rName, -1, rPort, false, id, null) {
 		    
 		    public void init(Object _system, WVM _wvm) {
 		    }
 		    
 		    public void execute() {
 			for (int i = 0; i < 5; i++){
-			    System.out.println(" <----- WorkletJunction.execute() (implemented in testPrio) ----->");
-			    System.out.println(" <----- I am VERY IMPORTANT: HIGH PRIOIRTY ----->");
-			    System.out.println("  !!!!!!!!!");
-			    System.out.println("   /     \\ ");
-			    System.out.println("  (.)   (.) ");
-			    System.out.println("      ^     ");
-			    System.out.println();
-			    System.out.println("    \\___/   ");
+			    WVM.out.println(" <----- WorkletJunction.execute() (implemented in testPrio) ----->");
+			    WVM.out.println(" <----- I am VERY IMPORTANT: HIGH PRIOIRTY ----->");
+			    WVM.out.println("  !!!!!!!!!");
+			    WVM.out.println("   /     \\ ");
+			    WVM.out.println("  (.)   (.) ");
+			    WVM.out.println("      ^     ");
+			    WVM.out.println();
+			    WVM.out.println("    \\___/   ");
 			    try {
 				sleep(5000);
 			    } catch (Exception e){
-				System.out.println("caught exception in sleep: " + e);
+				WVM.out.println("caught exception in sleep: " + e);
 			    }
 			}
 		    }
 		};
 
 
-	    WorkletJunction lowprio = new WorkletJunction(rHost, rName, rPort, id) {
+	    WorkletJunction lowprio = new WorkletJunction(rHost, rName, -1, rPort, false, id, null) {
 		    
 		    public void init(Object _system, WVM _wvm) {
 		    }
 		    
 		    public void execute() {
 			for (int i = 0; i < 5; i++){
-			    System.out.println(" <----- WorkletJunction.execute() (implemented in testPrio) ----->");
-			    System.out.println(" <----- I am not important: LOW PRIOIRTY ----->");
-			    System.out.println("  !!!!!!!!!");
-			    System.out.println("   /     \\ ");
-			    System.out.println("  (.)   (.) ");
-			    System.out.println("      ^     ");
-			    System.out.println();
-			    System.out.println("    ------   ");
+			    WVM.out.println(" <----- WorkletJunction.execute() (implemented in testPrio) ----->");
+			    WVM.out.println(" <----- I am not important: LOW PRIOIRTY ----->");
+			    WVM.out.println("  !!!!!!!!!");
+			    WVM.out.println("   /     \\ ");
+			    WVM.out.println("  (.)   (.) ");
+			    WVM.out.println("      ^     ");
+			    WVM.out.println();
+			    WVM.out.println("    ------   ");
 			    try {
 				sleep(5000);
 			    } catch (Exception e){
-				System.out.println("caught exception in sleep: " + e);
+				WVM.out.println("caught exception in sleep: " + e);
 			    }
 			}
 		    }

@@ -18,11 +18,11 @@ package psl.worklets;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-
 import psl.worklets.WVMRSL.Registration;
 
 public final class WVM extends Thread {
   public static PrintStream out = System.out;
+  public static PrintStream err = System.err;
   WVM_Transporter transporter;
   private final Object _system;
   private final Hashtable _peers = new Hashtable();
@@ -43,16 +43,33 @@ public final class WVM extends Thread {
   public static final boolean DEBUG(int d) { return d<DEBUG; }
   private static final String ini_file = new String(System.getProperty("INIFILE",""));
 
+  public static final int NO_SECURITY   = 0;
+  public static final int LOW_SECURITY  = 1;
+  public static final int MED_SECURITY  = 2;
+  public static final int HIGH_SECURITY = 3;
+
   public WVM(Object system) {
     this(system, null, "WVM");
   }
 
+  public WVM(OptionsParser op) {
+    this(new Object(), null, op.name, op.port, op.keysfile, op.password, 
+	 op.ctx, op.kmf, op.ks, op.rng,	 op.securityLevel);
+  }
+
   public WVM(Object system, String host, String name) {
-    this(system, host, name, WVM_Host.PORT+1);
-    // cannot have the WVM_Transporter listen on port: WVM_Host.PORT !!!
+    this(system, host, name, WVM_Host.PORT, null, null, null, null, null, null, 0);
   }  
 
-  public WVM(Object system, String host, String name, int port) {
+  public WVM(Object system, String host, String name, int port, 
+	     String keysfile, String password, String ctx, String kmf, String ks, String rng, 
+	     int securityLevel) {
+
+    if (keysfile != null && password != null && System.getProperty("WVM_FILE") == null){
+      WVM.err.println("WVM security parameters incomplete.  see -help or Worklet documentation for details.");
+      System.exit(0);
+    }
+
     WVM.out.println("WVM created");
     // URL.setURLStreamHandlerFactory(new WVM_URLStreamHandlerFactory());
     _system = system;
@@ -67,13 +84,17 @@ public final class WVM extends Thread {
 
       if (name == null) name =  _system.hashCode() + "_" +  System.currentTimeMillis();
 
-      transporter = new WVM_RMI_Transporter(this, host, name, port);
+      transporter = new WVM_RMI_Transporter(this, host, name, port, 
+					    keysfile, password, ctx, kmf, ks, rng,
+					    securityLevel);
       transporter.start();
+      WVM.out.println("Ready to accept worklets");
+
     } catch (Exception e) {
       WVM.out.println(e.getMessage());
       e.printStackTrace();
     }
-    
+
     if (initRegistration()) {      
       if (Register()){
         registered = true;
@@ -85,7 +106,7 @@ public final class WVM extends Thread {
     } else {
       // WVM.out.println("Could not init Registration object");
     }
-    
+
     Runtime.getRuntime().addShutdownHook(new Thread() {
       public void run() {
         if (registered){
@@ -96,9 +117,9 @@ public final class WVM extends Thread {
             _myStats.log("UnRegistrationl UNSUCCESFUL");
           } 
         }
-        shutdown();
+	shutdown();
       }
-    });
+      });
     start();
   }
 
@@ -119,11 +140,12 @@ public final class WVM extends Thread {
    * which worklet has completed execution, and must move on
    */
   final static Hashtable _activeWorklets = new Hashtable();
-  
+
   /**
    * Main WVM loop, wait indefinitely for installed worklets
    */
   public void run() {
+    Worklet _worklet;
     synchronized (this) {
       while (true) {
         // wait indefinitely to execute installed worklets
@@ -132,11 +154,10 @@ public final class WVM extends Thread {
             wait();
           } catch (InterruptedException e) { } 
         }
-        
-        Worklet _worklet = (Worklet) _installedWorklets.firstElement();
+        _worklet = (Worklet) _installedWorklets.firstElement();
         _installedWorklets.removeElement(_worklet);
         String hashCode = (new Integer(_worklet.hashCode())).toString();
-        
+
         // this is used to lookup the worklet when it is ready to leave
         _activeWorklets.put(hashCode, _worklet);
         executeWorklet(_worklet, hashCode);
@@ -157,6 +178,7 @@ public final class WVM extends Thread {
       this.notifyAll();
     }
   }
+  
 
   /**
    * Start executing this worklet
@@ -174,7 +196,7 @@ public final class WVM extends Thread {
     return (transporter.toString());
   }
 
-  // WVM Registration and Lookup ///////////////////////////////////////////////
+    // WVM Registration and Lookup ///////////////////////////////////////////////
   public boolean initRegistration(){
     Properties p = new Properties();
     try {
@@ -285,11 +307,12 @@ public final class WVM extends Thread {
 
 
   public static void main(String args[]) throws UnknownHostException {
-    WVM.out.println("usage: java psl.worklets.WVM <wvmName>");
-    String rmiName = args.length == 0 ? "WVM" : args[0];
-    WVM wvm = new WVM(new Object(), null, rmiName);
-  }
-
+    OptionsParser op = new OptionsParser("psl.worklets.WVM");
+    if (op.ParseOptions(args) != 1) 
+      new WVM(new Object(), null, op.name, op.port,
+	      op.keysfile, op.password, op.ctx, op.kmf, op.ks, op.rng, 
+	      op.securityLevel);
+  }  
 
   // -------------- ADDED VARS AND FXNS TO MANAGE WORKLETJUNCTIONS --------------- //
 
@@ -346,6 +369,11 @@ public final class WVM extends Thread {
     _myStats.dumpStats();
   }
   
+  // the security of the WVM is the transporter's security level.
+  final boolean isSecure(){
+    return transporter.isSecure();
+  }
+
   // -------------- ADDED CLASS AND FXNS TO GET WORKLETJUNCTION STATS --------------- //
 
   /* WVM_Stats: keep track of the WVM stats.  Currently only keeps basic stats 

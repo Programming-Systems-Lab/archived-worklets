@@ -42,7 +42,15 @@ public class ClassFileServer extends ClassServer {
    * @param default_codebase the classpath where the server locates classes
    */
   public ClassFileServer(int port, String codebase) throws IOException {
-    super(port);
+    this(port, codebase, null);
+  }
+
+  public ClassFileServer(int port, String codebase, WVM_SSLSocketFactory wvm_sf) throws IOException {
+    this("http", "localhost", port, codebase, null);  }  
+  public ClassFileServer(String protocol, String host, int port, String codebase, WVM_SSLSocketFactory wvm_sf) 
+    throws IOException {
+    
+    super(port, wvm_sf);
     this.default_codebase = codebase;
     aliases = new Vector();
     
@@ -60,12 +68,12 @@ public class ClassFileServer extends ClassServer {
       aliases.addElement(token);
       if (WVM.DEBUG(5)) WVM.out.println("\t" + token);
     }  
-    if (WVM.DEBUG(5)) WVM.out.println("Ended ClassFileServer");
+    if (WVM.DEBUG(5)) WVM.out.println("Ended ClassFileServer");        toString = protocol + "://" + host + ":" + getWebPort() + "/";
   }
   
-  public int getWebPort () { return port; }
-  
-  public Vector getAliases() { return aliases; }
+  public int getWebPort () { return port; }  
+  public Vector getAliases() { return aliases; }  private final String toString;
+  public String toString () { return toString; }  
   
   
   /**
@@ -212,7 +220,7 @@ public class ClassFileServer extends ClassServer {
       return null;
     }
   }
-   
+  
 
   /**
    * Main method to create the class server that reads
@@ -241,6 +249,9 @@ public class ClassFileServer extends ClassServer {
   public static void main(String args[]) {
     int port = DefaultServerPort;
     String classpath = "";
+    String keysFile = "";
+    String password = "";
+    WVM_SSLSocketFactory wvm_sf = null;
     
     if (args.length >= 1) {
       port = Integer.parseInt(args[0]);
@@ -250,8 +261,19 @@ public class ClassFileServer extends ClassServer {
       classpath = args[1];
     }
     
+    if (args.length >= 3 && args.length <= 4) {
+      keysFile = args[3];
+      password = args[4];
+
+      try {
+        wvm_sf = new WVM_SSLSocketFactory(keysFile, password);
+      } catch (Exception e){
+        WVM.err.println("Caught exception creating WVM_SSLSocketFactory: " + e);
+      }
+    }
+
     try {
-      new ClassFileServer(port, classpath);
+      new ClassFileServer(port, classpath, wvm_sf);
       // WVM.out.println("ClassFileServer started...");
     } catch (IOException e) {
       // WVM.out.println("Unable to start ClassServer: " + e.getMessage());

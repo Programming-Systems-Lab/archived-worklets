@@ -11,17 +11,25 @@ package psl.worklets;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-
+import javax.net.ssl.*;
 import psl.worklets.http.ClassServer;
 
 class WVM_ClassLoader_New extends WVM_ClassLoader {
   private final URLSet _urlSet;
+  private WVM_SSLSocketFactory _WVM_sf;
+
   WVM_ClassLoader_New(URL[] urls) {  
+    this(urls, null);
+  }
+
+  WVM_ClassLoader_New(URL[] urls, WVM_SSLSocketFactory wvm_sf) {  
     super(urls);
+    _WVM_sf = wvm_sf;
     // store these urls into our private ordered, data structure
     _urlSet = new URLSet();
     _urlSet.add(urls);
   }
+
   public Class findClass(String name) throws ClassNotFoundException {
     // WVM.out.println(WVM.time() + "WVM_ClassLoader asked to findClass(" + name + ")");
     byte bytecode[] = null;
@@ -33,9 +41,15 @@ GOOD_BLOCK:
       while (e.hasMoreElements()) {
         try {
           URL url = new URL(e.nextElement() + name + ".class");
-          // WVM.out.println(url);
-          HttpURLConnection urlCon = (HttpURLConnection) url.openConnection();
-          urlCon.connect();
+	  // WVM.out.println("PRINT URL: " +url);
+	  URLConnection urlCon = url.openConnection();;
+
+	  String urlProtocol = url.getProtocol();
+	  if (urlProtocol.equals("https") && _WVM_sf != null){
+	    ((HttpsURLConnection) urlCon).setSSLSocketFactory(_WVM_sf.getSSLSocketFactory());
+	    ((HttpsURLConnection) urlCon).setHostnameVerifier(new WVM_HostnameVerifier());
+	  }
+	  urlCon.connect();
           InputStream is = urlCon.getInputStream();
           // WVM.out.println("checking on data stream @ " + WVM.time());
           // int size = is.available();
@@ -52,15 +66,19 @@ GOOD_BLOCK:
           }
 
           is.close();
-          urlCon.disconnect();
+	  if (url.getProtocol().equals("http") || url.getProtocol().equals("https"))
+	    ((HttpURLConnection) urlCon).disconnect();
+	  
           // add bytecode to local Webserver cache
           ClassServer.put(name, bytecode);
           
           // Upgrade url in _urlSet
           break GOOD_BLOCK;
         } catch (IOException ioe) {
-          // ioe.printStackTrace();
-          WVM.out.println("IOException: ioe " + ioe.getMessage());
+	  // this Exception could be because the HostnameVerifier 
+	  // refused the remote host.
+	  // WVM.err.println("Caught IOException: " + ioe);
+	  //ioe.printStackTrace();
         }
       }
       throw (new ClassNotFoundException("Class: " + name + " not found in URLs"));
@@ -76,8 +94,14 @@ GOOD_BLOCK:
       while (e.hasMoreElements()) {
         try {
           URL url = new URL(e.nextElement() + name);
-          // WVM.out.println("fndResource testing URL: " + url);
-          HttpURLConnection urlCon = (HttpURLConnection) url.openConnection();
+	  // WVM.out.println("fndResource testing URL: " + url);
+	  URLConnection urlCon = url.openConnection();
+
+	  String urlProtocol = url.getProtocol();
+	  if (urlProtocol.equals("https") && _WVM_sf != null){
+	    ((HttpsURLConnection) urlCon).setSSLSocketFactory(_WVM_sf.getSSLSocketFactory());
+	    ((HttpsURLConnection) urlCon).setHostnameVerifier(new WVM_HostnameVerifier());
+	  }
           urlCon.connect();
           InputStream is = urlCon.getInputStream();
           // WVM.out.println("checking on data stream @ " + WVM.time());
@@ -95,7 +119,9 @@ GOOD_BLOCK:
           }
 
           is.close();
-          urlCon.disconnect();
+	  if (urlProtocol.equals("http") || urlProtocol.equals("https"))
+	    ((HttpURLConnection) urlCon).disconnect();
+	  
           // add binary to local Webserver cache
           ClassServer.put(name, binary);
           

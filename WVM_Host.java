@@ -26,5 +26,6 @@ public interface WVM_Host extends java.rmi.Remote {
 
   public boolean receiveMessage(Object _messageKey, Object _message) throws RemoteException;
   public Object requestMessage(Object _messageKey) throws RemoteException;
-}
 
+  public boolean isSecure() throws RemoteException;
+}

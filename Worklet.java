@@ -40,6 +40,9 @@ public final class Worklet implements Serializable {
   private final Vector _route = new Vector();
   private final Vector _junctions = new Vector();
   private final Vector _wjClasses = new Vector();
+  
+  private boolean _defaultSecurity = true;	// default to transporter security
+  private boolean _isSecure = false;		
 
   public Worklet(WorkletJunction _oj) {
     _originJunction = _oj;
@@ -83,7 +86,7 @@ public final class Worklet implements Serializable {
         // 2-do: existing super-priority thread to inherit higher priorities from ... 
         WorkletJunction _wj = _atOrigin ? _originJunction : _currentJunction;
         Thread t = new Thread(_wj, _hashCode);
-				t.setPriority(_wj.getPriority());
+	t.setPriority(_wj.getPriority());
         t.start();
         
         if (_atOrigin || !_currentJunction.dropOff()) {
@@ -114,6 +117,7 @@ public final class Worklet implements Serializable {
       _junctions.trimToSize();
     }
 
+    _wvm = wvm;
     _lHost = wvm.transporter._host;
     _lName = wvm.transporter._name;
     _lPort = wvm.transporter._port;
@@ -133,20 +137,20 @@ public final class Worklet implements Serializable {
     _lName = _wvm.transporter._name;
     _lPort = _wvm.transporter._port;
 
-		// todo: locate and use predefined WVM URL comparison function.
-		// note: hopefully that predefined WVM function resolves the difference
-		// between 'localhost' and 127.0.0.1, and the computer's actual ip!!!
-		if (_lHost == _currentJunction._host && 
-  		 (_lName == _currentJunction._name || _lPort == _currentJunction._port)) {
-
-				_wvm.installWorklet(this);
-
-		} else {
-			// Use local WVM to catapult to next junction
-			_tmpWVM.transporter.sendWorklet(this, _currentJunction);
-		}
+    // todo: locate and use predefined WVM URL comparison function.
+    // note: hopefully that predefined WVM function resolves the difference
+    // between 'localhost' and 127.0.0.1, and the computer's actual ip!!!
+    if (_lHost == _currentJunction._host && 
+	(_lName == _currentJunction._name || _lPort == _currentJunction._port)) {
+      
+      _wvm.installWorklet(this);
+      
+    } else {
+      // Use local WVM to catapult to next junction
+      _tmpWVM.transporter.sendWorklet(this, _currentJunction);
+    }
   }
-
+  
   void returnToOrigin() {
     WVM _tmpWVM = _wvm;
     _atOrigin = true;
@@ -178,4 +182,15 @@ public final class Worklet implements Serializable {
     return (_wjClasses.elements());
   }
 
+  public final void isSecure(boolean isSecure){
+    _defaultSecurity = false;
+    _isSecure = isSecure;
+  }
+
+  public final boolean isSecure(){
+    if (_defaultSecurity && _wvm != null)
+      return _wvm.isSecure();
+    else 
+      return _isSecure;
+  }
 }

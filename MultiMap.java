@@ -169,15 +169,15 @@ public class MultiMap {
 	if (s.size() > 0){
 	    while (setItr.hasNext()) {
 		Object key = setItr.next();
-		System.out.print(" " + key + " <");
+		WVM.out.print(" " + key + " <");
 		Vector v = (Vector)_mmap.get(key);
 		Iterator vecItr = v.iterator();
 
 		while (vecItr.hasNext()) {		
 		    Object value = vecItr.next();
-		    System.out.print(value + ",");
+		    WVM.out.print(value + ",");
 		}
-		System.out.println(">");
+		WVM.out.println(">");
 	    } 
 	} 
     }

@@ -13,11 +13,11 @@
  *
  * CopyrightVersion 1.1_beta
  */
-
 package psl.worklets.http;
 
 import java.io.*;
 import java.net.*;
+import javax.net.ssl.*;
 import java.util.*;
 import psl.worklets.*;
 
@@ -50,21 +50,26 @@ public abstract class ClassServer implements Runnable {
    * @exception IOException if the ClassServer could not listen
    *            on <b>port</b>.
    */
-  protected ClassServer(int aPort) throws IOException {
+  protected ClassServer(int aPort) throws IOException{
+    this(aPort, null);
+  }
+
+  protected ClassServer(int aPort, WVM_SSLSocketFactory WVM_sf) throws IOException {
     // Setup socket
     this.port = aPort;
     while (this.port >= aPort) {
       try {
-        server = new ServerSocket(this.port);
+	if (WVM_sf != null) server = WVM_sf.createServerSocket(this.port);
+	else server = new ServerSocket(this.port);
         break;
       } catch (UnknownHostException e) {
         // whut? not possible!
       } catch (IOException e) {
         // oops, must try another port number;
-        port += 100;
+        port += 1; // gskc:27aug2002:1736 100
       }
     }
-    WVM.out.println ("Class server listening on Web port: " + this.port);
+    // WVM.out.println ("Class server listening on Web port: " + this.port);
     // server = new ServerSocket(this.port);
     newListener();
   }
@@ -102,7 +107,7 @@ public abstract class ClassServer implements Runnable {
    * if the class is not found or the response was malformed).
    */
   public void run() {
-    Socket socket;
+    Socket socket = null;
     // accept a connection
     try {
       socket = server.accept();
@@ -113,26 +118,24 @@ public abstract class ClassServer implements Runnable {
       // e.printStackTrace();
       return;
     }
-
+    
     try {
       DataOutputStream out = new DataOutputStream(socket.getOutputStream());
       try {
         // get path to class file from header
         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         String path = getPath(in);
-
-        // WVM.out.println("Remote port: " + socket.getPort());
         // retrieve bytecodes
         byte[] bytecodes = null;
         if (containsKey(path)) {
           bytecodes = get(path);
-          WVM.out.println(" + + + Serving cached bytecode for class: " + path);
+          // WVM.out.println(" + + + Serving cached bytecode for class: " + path);
         } else {
           // retrieve bytecodes from the file system
           bytecodes = getBytes(path);
           // cache the bytecodes to be sent out
           put(path, bytecodes);
-          WVM.out.println(" + + + Caching binary data for file: " + path);
+          // WVM.out.println(" + + + Caching binary data for file: " + path);
         }
 
         // WVM.out.println("Retrieved bytecodes: " + bytecodes.length);
@@ -170,8 +173,10 @@ public abstract class ClassServer implements Runnable {
     } catch (IOException ex) {
       // eat exception (could log error to log file, but
       // write out to stdout for now).
-      WVM.out.println("error writing response: " + ex.getMessage());
-      ex.printStackTrace();
+      // dp2041: I commented out next two lines.  possible errors are:
+      // 1) wrong protol (file/https) from class loading
+      // WVM.out.println("error writing response: " + ex.getMessage());
+      // ex.printStackTrace();
     } finally {
       try { socket.close(); } catch (IOException e) { e.printStackTrace(); }
     }
@@ -180,7 +185,8 @@ public abstract class ClassServer implements Runnable {
   public void shutdown() {
     WVM.out.println ("    Shutting down Class Server");
     try {
-      server.close();
+      if (server != null)
+	server.close();
       server = null;
     } catch (IOException e) { }
     // WVM.out.println ("Class Server shut down");
@@ -199,7 +205,7 @@ public abstract class ClassServer implements Runnable {
    */
   private static String getPath(BufferedReader in) throws IOException {
     String line = in.readLine();
-    WVM.out.println("\n + + + request is: " + line);
+    // WVM.out.println("\n + + + request is: " + line);
     String path = "";
     // extract class from GET line
     if (line.startsWith("GET /")) {
@@ -211,12 +217,14 @@ public abstract class ClassServer implements Runnable {
         path = new StringTokenizer(line, " ").nextToken();
       }
       if (WVM.DEBUG(3)) WVM.out.println("path is: " + path);
+    } else {
+      throw new IOException("Malformed Header in Class request");
     }
 
     // eat the rest of header
     do {
       line = in.readLine();
-      // WVM.out.println (" + + + " + line);            
+      // WVM.out.println (" + + + " + line);
     } while ((line.length() != 0) && (line.charAt(0) != '\r') && (line.charAt(0) != '\n'));
     if (path.length() != 0) {
       // WVM.out.println("Edited: gskc, 19Feb01 --- returning path: " + path);
