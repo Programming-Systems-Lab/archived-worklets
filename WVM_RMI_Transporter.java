@@ -114,13 +114,17 @@ class WVM_RMI_Transporter extends WVM_Transporter {
           WVM_Host tmpWVM_H = null;
           try {
             tmpWVM_H = (WVM_Host) Naming.lookup("rmi://" + _host + ":" + _port + "/" + name);
+          } catch (ClassCastException cce) {
+            WVM.out.println("    non-WVM service: '" + name + "' found registered on RMI Registry");
+            continue;
           } catch (NotBoundException e) {
             WVM.out.println("RMI Service was not bound: " + name);
           } catch (MalformedURLException e) {
             WVM.out.println("MalformedURLException: " + name);
           } finally {
-            WVM.out.println("    unregistered service: " + name);
+            if (tmpWVM_H != null) WVM.out.println("    unregistered service: " + name);
           }
+
           Date tmpDate = tmpWVM_H.rejoinRegistry();
           if (tmpDate.before(oldestDate)) {
             oldestDate = tmpDate;
