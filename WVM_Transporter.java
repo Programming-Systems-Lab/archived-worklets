@@ -228,6 +228,10 @@ class WVM_Transporter extends Thread {
       WVM.out.println("  --  Sending worklet thru sockets");
       s = new Socket(targetHost, targetPort);
       oos = new ObjectOutputStream(s.getOutputStream());
+
+      oos.writeUTF(WORKLET_XFER);
+
+
       oos.writeUTF(_host);
       oos.writeUTF(_name);
       oos.writeInt(_port);
@@ -278,7 +282,7 @@ class WVM_Transporter extends Thread {
 
       // Receive ACK from the target WVM
       ois = new ObjectInputStream(s.getInputStream());
-      transmissionComplete = ois.readBoolean();
+      transmissionComplete = ois.readUTF().equals(WORKLET_RECV);
     } catch (InvalidClassException e) {
       WVM.out.println("InvalidClassException in sendWorklet, e: " + e.getMessage());
       e.printStackTrace();

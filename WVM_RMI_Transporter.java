@@ -81,9 +81,10 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         _wvm = super._wvm;
         return;
       } catch (RemoteException e) {
-        e.printStackTrace();
+        WVM.out.println("  Error creating the RMI Registry, trying again ... ");
+        // e.printStackTrace();
         try {
-          Thread.currentThread().sleep(500);
+          Thread.currentThread().sleep(1500);
         } catch (InterruptedException ie) { }
         continue;
       }
@@ -283,8 +284,6 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         WVM.out.println("RemoteException: " + e.getMessage());
         // e.printStackTrace();
         throw(e);
-      } finally {
-        return false;
       }
     }
 
