@@ -19,10 +19,10 @@ import psl.probelets.*;
 import psl.worklets.*;
 
 /**
- * <code>probeGreeter</code> is an demo example of the Worklets system that
- * shows how one would probe the {@link WVM}.
+ * probeGreeter is an demo example of the Worklets system that
+ * shows how one would probe a system.
  */
-public class probeGreeter implements Serializable {
+public class probeGreeter extends Thread implements Serializable {
 
   public static void main(String args[]) {
 
@@ -40,16 +40,17 @@ public class probeGreeter implements Serializable {
 
     try {
       if (wvm == null)
-	wvm = new WVM(new Object(), InetAddress.getLocalHost().getHostAddress(), "probeGreeter");	} catch (UnknownHostException e) {
-	  WVM.out.println("Exception: " + e.getMessage());
-	  e.printStackTrace();
-	  System.exit(0);
-	}
+	wvm = new WVM(new Object(), InetAddress.getLocalHost().getHostAddress(), "probeGreeter");
+    } catch (UnknownHostException e) {
+      WVM.out.println("Exception: " + e.getMessage());
+      e.printStackTrace();
+      System.exit(0);
+    }
 
     // **************** ADDING THE WORKLET JUNCTION ********************** //
 
-    originJunction = new Probelet(wvm.getWVMAddr(), wvm.getWVMPort(), -1, wvm.getWVMPort(),
-				  false, new WorkletID("origin"), null);
+    // originJunction = new Probelet(wvm.getWVMAddr(), wvm.getWVMName(), -1, wvm.getWVMPort(),
+    // false, new WorkletID("origin"), null);
 
     Worklet wkl = new Worklet(originJunction);
     WorkletID id = new WorkletID("probeGreeter");
@@ -57,8 +58,14 @@ public class probeGreeter implements Serializable {
     wkl.addJunction(new Probelet(rHost, rName, -1, rPort, false, id, null));
     wkl.deployWorklet(wvm);
 
+    try {
+      sleep(10000);
+    } catch (Exception e){
+    }
+
     System.exit(0);
   }
+
 }
 
 class Probelet extends WorkletJunction {
@@ -68,12 +75,16 @@ class Probelet extends WorkletJunction {
     super(rHost, rName, rmiport, rPort, dropOff, id, jp);
   }
 
-  public void init(Object _system, WVM _wvm) {
-    ((Greeter)_system).initiateGreeting();
-  }
+  public void init(Object _system, WVM _wvm) {;}
 
   public void execute() {
+    boolean talking = ((Greeter)_system).interlocuting();
     String greeting = ((Greeter)_system).getGreeting();
     System.out.println("found the greeting to be: " + greeting);
+
+    if (talking)
+      System.out.println("The greeters are interlocuting");
+    else
+      System.out.println("The greeters are NOT interlocuting");
   }
 }

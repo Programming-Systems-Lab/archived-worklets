@@ -1,12 +1,39 @@
+/*
+ * @(#)politeGreeter.java
+ *
+ * Copyright (c) 2002: The Trustees of Columbia University in the City of New York.  All Rights Reserved
+ *
+ * Copyright (c) 2002: @Dan Phung (dp2041@cs.columbia.edu)
+ *
+ * CVS version control block - do not edit manually
+ *  $RCSfile$
+ *  $Revision$
+ *  $Date$
+ *  $Source$
+ */
+
 import java.net.*;
 import java.io.*;
 import psl.worklets.*;
 
 /**
- * PoliteGreeter sends a message every 5 seconds
+ * PoliteGreeter
  *
  */
 class politeGreeter extends Thread implements Greeter {
+
+  public static void main (String args[]){
+    if (args.length < 6 || (args.length > 0 && args[0].indexOf("help") != -1)){
+      System.out.println("Usage: java politeGreeter lhost lport name rhost rport <initiate greeting? (true/false)");
+      return;
+    }
+
+    politeGreeter pierre = new politeGreeter(args[0], Integer.parseInt(args[1]), args[2], args[3], Integer.parseInt(args[4]), args[5]);
+
+    pierre.startListening();
+  }
+
+
   private ServerSocket _serverSocket;
   private Socket _socket;
 
@@ -15,52 +42,72 @@ class politeGreeter extends Thread implements Greeter {
   private String _prompt = "ca va";
 
   String _initiateGreeting = "false";
-  public boolean greet = true;
+  private boolean _interlocute = false;
 
+  private String _host;
   private int _port;
+  private String _name;
   private String _rhostname;
   private int _rport;
 
-  politeGreeter(int p, String h, int rp, String ig){
-    if (p == rp){
+
+  politeGreeter(String host, int port, String name, String rhost, int rport, String initiateGreeting){
+    if (port == rport){
       System.err.println("error, local port and remote port are equal");
       System.exit(-1);
     }
 
-    _port = p;
-    _rhostname = h;
-    _rport = rp;
-    _initiateGreeting = ig;
+    _host = host;
+    _port = port;
+    _name = name;
+    _rhostname = rhost;
+    _rport = rport;
+    _initiateGreeting = initiateGreeting;
 
-    WVM wvm = new WVM(this);
+    if (_initiateGreeting.equals("true"))
+      _interlocute = true;
 
+    WVM wvm = new WVM(this, host, _name);
+ }
+
+  private void startListening(){
     try {
       _serverSocket = new ServerSocket(_port);
 
       // System.out.println("Ready");
-      while(greet){
+      while(true){
+
 	if (_initiateGreeting.equals("true")){
 	  sendGreeting(_initialGreeting);
 	  _initiateGreeting = "false";
 	}
 
-	_socket = _serverSocket.accept();
+	if (_interlocute)
+	  {
+	    try {
+	      // WVM.out.println("politeGreeter is listening");
+	    _socket = _serverSocket.accept();
+	    } catch (SocketException se) {}
+	  }
 
-	if (!receivedGreeting(new ObjectInputStream(_socket.getInputStream()))){
-	  System.err.println("Merde, je ne peux pas comprendre cette fou!");
-	  continue;
-	}
-	// 	  System.out.println("Received a greeting!");
+	// sleep, just to slow the conversation down a bit
 	try {
-	  sleep(5000);
+	  sleep(2000);
 	} catch (InterruptedException ie){
-	  System.err.println("Damn, can't get a good night's sleep: " + ie);
+	  // System.err.println("Je ne peux pas dormir? " + ie);
 	}
-	sendGreeting(_greeting);
-	_socket.close();
+
+	if (_socket !=  null && receivedGreeting(new ObjectInputStream(_socket.getInputStream()))
+	    && _interlocute){
+	  sendGreeting(_greeting);
+
+	}
+
+	if (_socket != null)
+	  _socket.close();
       }
     } catch (IOException e){
-      System.err.println("Greeter IOException: " + e);
+      // System.err.println("Greeter IOException: " + e);
     }
   }
 
@@ -77,6 +124,7 @@ class politeGreeter extends Thread implements Greeter {
     ObjectOutputStream oos = null;
 
     try {
+      // System.out.println("sending to: " + _rhostname + ":" + _rport);
       _socket = new Socket(_rhostname, _rport);
       oos = new ObjectOutputStream(_socket.getOutputStream());
       oos.writeUTF(message);
@@ -84,9 +132,9 @@ class politeGreeter extends Thread implements Greeter {
       _socket.close();
       return true;
     } catch (UnknownHostException uhe){
-      System.err.println("Greeter UnknownHostException: " + uhe);
+      //System.err.println("Greeter UnknownHostException: " + uhe);
     } catch (IOException ioe){
-      System.err.println("Greeter IOException: " + ioe);
+      // System.err.println("Greeter IOException: " + ioe);
     }
     return false;
   }
@@ -108,15 +156,26 @@ class politeGreeter extends Thread implements Greeter {
   }
 
   public void initiateGreeting() {
+    System.out.println("Initiating greeting");
+//     try {
+//       _serverSocket.close();
+//     } catch (IOException ioe) {
+//       System.err.println("Error closing server socket: " + ioe);
+//     }
     _initiateGreeting = "true";
   }
 
-  public static void main (String args[]){
-    if (args.length < 4 || (args.length > 0 && args[0].indexOf("help") != -1)){
-      System.out.println("Usage: java politeGreeter port rhost rport <initiate greeting? (true/false)>");
-      return;
-    }
+  public boolean interlocuting() {
+    return _interlocute;
+  }
 
-    new politeGreeter(Integer.parseInt(args[0]), args[1], Integer.parseInt(args[2]), args[3]);
+  public void stopInterlocuting() {
+    System.out.println("interlocute = false");
+    _interlocute = false;
+  }
+
+  public void startInterlocuting() {
+    System.out.println("interlocute = true");
+    _interlocute = true;
   }
 }

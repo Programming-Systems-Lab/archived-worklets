@@ -30,4 +30,19 @@ public interface Greeter{
    * Initiates a greeting to the other person
    */
   public void initiateGreeting();
+
+  /**
+   * Checks to see if the Greeter is currently in discourse with anyone
+   */
+  public boolean interlocuting();
+
+  /**
+   * Stops the current Greeter's discourse
+   */
+  public void stopInterlocuting();
+
+  /**
+   * Starts the Greeter's discourse
+   */
+  public void startInterlocuting();
 }
