@@ -8,6 +8,7 @@ package psl.worklets;
  *
 */
 
+import java.io.*;
 import java.net.*;
 import java.util.*;
 
@@ -42,11 +43,23 @@ class WVM_ClassLoader extends URLClassLoader {
       if (hs != null) {
         hs.add(name);
       }
+
+			/*
+			// 2-try: instead of adding NAME of class to hashset, add bytecode to http server's cache
+			InputStream is = super.getResourceAsStream(name);
+			WVM.out.println("input stream: " + is);
+			WVM.out.println("name: " + name);
+			byte []bytecode = new byte[is.available()];
+			is.read(bytecode);
+			WVM.out.println(bytecode);
+			*/
+
       return (c);
     } catch (Exception e) {
       WVM.out.println("in WVM_ClassLoader, Exception e: " + e.getMessage());
+			e.printStackTrace();
+			return null;
     }
-    return ((Class) super.findClass(name));
   }
   public void addCodebase(URL[] urls) {
     for (int i=0; i<urls.length; i++) {

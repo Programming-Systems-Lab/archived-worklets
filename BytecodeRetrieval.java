@@ -18,9 +18,19 @@ class BytecodeRetrieval implements Serializable {
     String rHost, String rName, int rPort) {
     // WVM.out.println("da BytecodeRetrieval is alive");
 
-    Worklet wkl = new Worklet(new WorkletJunction(_host, _name, _port) {
+    Worklet wkl = new Worklet(new OriginWJ(_host, _name, _port));
+		wkl.addJunction(new TargetWJ(rHost, rName, rPort, _hs));
+    wkl.deployWorklet(wvm);
+
+  }
+
+}
+    class OriginWJ extends WorkletJunction {
       // This worklet will execute when it comes back to the sender
       // it is the origin junction
+			OriginWJ(String _host, String _name, int _port) {
+				super(_host, _name, _port);
+			}
       public void execute() {
         // WVM.out.println("da BytecodeRetrieval is alive @ origin");
         Enumeration keys = _payload.keys();
@@ -37,14 +47,17 @@ class BytecodeRetrieval implements Serializable {
           ht.put(key, bytecode);
         }
       }
-    });
-
-    wkl.addJunction(new WorkletJunction(rHost, rName, rPort) {
+    }
+		class TargetWJ extends WorkletJunction {
       // This worklet will execute at the target site
       // It will extract the bytecode from the tartet http server's
       // cache and add to payload of the origin junction
-      HashSet hs = _hs;
-      public void execute() {
+      HashSet hs;
+      TargetWJ(String rHost, String rName, int rPort, HashSet _hs) {
+				super(rHost, rName, rPort);
+      	hs = _hs;
+			}
+			public void execute() {
         // WVM.out.println("da BytecodeRetrieval is alive @ target: " + hs.size());
         Iterator it = hs.iterator();
         while (it.hasNext()) {
@@ -58,10 +71,5 @@ class BytecodeRetrieval implements Serializable {
           }
         }
       }
-    });
+    }
 
-    wkl.deployWorklet(wvm);
-
-  }
-
-}

@@ -65,7 +65,7 @@ public final class Worklet implements Runnable, Serializable {
     } else {
       _currentJunction.execute();
 
-      if (retrieveBytecode && !(_currentJunction instanceof psl.worklets.BytecodeRetrieval$2)) {
+      if (retrieveBytecode && !(_currentJunction instanceof psl.worklets.TargetWJ)) {
         // WVM.out.println("send out BytecodeRetrieverWJ w/ a Worklet to retrieve all URLLoaded classes");
         new BytecodeRetrieval(classHashSet, _wvm,
           _wvm.transporter._host, _wvm.transporter._name, _wvm.transporter._port,
