@@ -42,7 +42,14 @@ GOOD_BLOCK:
           int size = urlCon.getContentLength();
           // if (size == 0) continue;
           bytecode = new byte[size];
-          is.read(bytecode);
+          int total = 0;
+          while (total < size) {
+          	int actual;
+          	actual = is.read(bytecode, total, size-total);
+          	total += actual;
+          	//WVM.out.println("Got " + total + " bytes from ClassServer for class: " + name);
+        }
+        
           // WVM.out.println("Got " + size + " bytes from ClassServer for class: " + name);
 
           is.close();
