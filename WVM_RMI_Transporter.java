@@ -141,10 +141,10 @@ class WVM_RMI_Transporter extends WVM_Transporter {
     super.sendWorklet(wkl, wj);
   }
 
-	public String toString() {
-		if (rmiService) return (_name + " @ " + _host + " : " + _port);
-		return (_host + " : " + _port);
-	}
+  public String toString() {
+    if (rmiService) return (_name + " @ " + _host + " : " + _port);
+    return (_host + " : " + _port);
+  }
 
   class RTU extends UnicastRemoteObject implements WVM_Host {
     

@@ -14,7 +14,7 @@ import java.net.*;
 import java.util.*;
 
 public final class WVM extends Thread {
-	public static PrintStream out = System.out;
+  public static PrintStream out = System.out;
   WVM_Transporter transporter;
   private Object _system;
   private final Hashtable _peers = new Hashtable();
@@ -46,9 +46,9 @@ public final class WVM extends Thread {
     _installedWorklets.clear();
 
     if (transporter != null) {
-			transporter.shutdown();
-    	transporter = null;
-		}
+      transporter.shutdown();
+      transporter = null;
+    }
     _system = null;
     WVM.out.println("WVM destroyed");
   }
@@ -82,13 +82,13 @@ public final class WVM extends Thread {
     _worklet.execute();
   }
 
-	public String toString() {
-		return (transporter.toString());
-	}
+  public String toString() {
+    return (transporter.toString());
+  }
 
   public static void main(String args[]) throws UnknownHostException {
-		WVM.out.println("usage: java psl.worklets.WVM <wvmName>");
-		String rmiName = args.length == 0 ? "WVM" : args[0];
+    WVM.out.println("usage: java psl.worklets.WVM <wvmName>");
+    String rmiName = args.length == 0 ? "WVM" : args[0];
     WVM wvm = new WVM(new Object(), InetAddress.getLocalHost().getHostAddress(), rmiName);
   }
 

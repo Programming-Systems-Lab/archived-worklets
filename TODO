@@ -16,7 +16,7 @@
 
 10 March 2001
 =============
-  - add WVM.out: a PrintStream oject, same as System.out by default
+  - add WVM.out: a PrintStream oject, same as System.out by default   ;)
 
 07 March 2001
 =============
