@@ -48,7 +48,7 @@ class WVM_Transporter extends Thread {
     _host = host;
     _name = name;
     _port = port;
-    while (_port++ >= port) {
+    while (_port >= port) {
       try {
         _socket = new ServerSocket(_port);
         WVM.out.println("  SocketListener: " + _host + ":" + _port);
@@ -58,6 +58,7 @@ class WVM_Transporter extends Thread {
         // whut? not possible!
       } catch (IOException e) {
         // oops, must try another port number;
+        _port++;
         continue;
       }
     }

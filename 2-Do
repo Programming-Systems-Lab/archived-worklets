@@ -1,3 +1,7 @@
+25 January 2001
+===============
+  - specify port number when creating WVMs
+
 03 December 2001
 ================
   - WVMs save and reuse connections to peer WVMs

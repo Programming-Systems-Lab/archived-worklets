@@ -27,6 +27,9 @@ class WVM_RMI_Transporter extends WVM_Transporter {
 
   private WVM _wvm;
   
+  /**
+   * @deprecated never used
+  */
   WVM_RMI_Transporter(WVM wvm, String host, String name) {
     this(wvm, host, name, WVM_Host.PORT);
   }
