@@ -1,5 +1,12 @@
 package psl.worklets;
 
+/* CVS version control block - do not edit manually
+ *  $RCSfile$
+ *  $Revision$
+ *  $Date$
+ *  $Source$
+ */
+
 /**
  *
  * Copyright (c) 2001: The Trustees of Columbia University in the City of New York.  All Rights Reserved
@@ -48,7 +55,7 @@ public final class Worklet implements Runnable, Serializable {
       _wj._worklet = this;
     }
   }
-  
+
   public WorkletJunction getOriginJunction() {
     return (_originJunction);
   }
@@ -64,16 +71,20 @@ public final class Worklet implements Runnable, Serializable {
       _currentJunction.sysInit(system, wvm);
     }
   }
-  
+
   public void run() {
     execute();
   }
 
   private void execute() {
     if (_atOrigin) {
-      _originJunction.execute();
+      _originJunction.run();
+        
     } else {
-      _currentJunction.execute();
+      if (_currentJunction.dropOff())
+        (new Thread(_currentJunction)).start();
+      else 
+        _currentJunction.run();
 
       if (!WVM.NO_BYTECODE_RETRIEVAL_WORKLET && retrieveBytecode /* && !(_currentJunction instanceof psl.worklets.TargetWJ)*/ ) {
         // new BytecodeRetrieval(classHashSet, _wvm, _wvm.transporter._host, _wvm.transporter._name, _wvm.transporter._port, _lHost, _lName, _lPort);
@@ -101,7 +112,7 @@ public final class Worklet implements Runnable, Serializable {
 
     wvm.transporter.sendWorklet(this, _currentJunction);
   }
-  
+
   void moveToNextJunction() {
     WVM _tmpWVM = _wvm;
     synchronized (_junctions) {
@@ -140,5 +151,5 @@ public final class Worklet implements Runnable, Serializable {
   Enumeration getClasses() {
     return (_wjClasses.elements());
   }
-  
+
 }

@@ -50,7 +50,6 @@ public class SystemDispatch implements Serializable {
 
     try {
       final Class appClass = Class.forName(App);
-      // final Class appClass = Class.forName("gskc.TicTacToe");
 
       if (wvm == null) {
         wvm = new WVM(new Object(), InetAddress.getLocalHost().getHostAddress(), "SystemDispatch");

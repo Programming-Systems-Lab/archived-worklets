@@ -1,0 +1,21 @@
+README - 13 May 2002 - Dan Phung (dp2041@cs.columbia.edu)
+
+README for JunctionPlanner project by Dan Phung.  
+
+Included in this tag (-r JunctionPlanner) of the worklets system is
+a suite of test applications (from Manifest): 
+Send.java		: test application using JunctionPlanner that uses iterations and interval
+SendDate.java		: "" "" that uses Date
+SendMany.java		: "" ""that deploys several WorkletJunctions
+SendNotify.java		: "" "" sends a WorkletJunction to wakeUp a referenced WorkletJunction
+getStats.java		: "" "" sends a WorkletJunction to dump the stats of a remote WVM
+Apps/Face.java		: "" "" that prints a face
+Apps/MySleep.java	: "" "" that waits for 10 seconds
+demo.sh			: shell script that runs several tests.
+
+The "Send" applications contain examples of Worklets that have
+different JunctionPlanners.  The file demo.sh holds examples of how to
+use those applications.
+
+Please feel free to email me if you have any questions on how to use 
+the test applications.
