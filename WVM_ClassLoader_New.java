@@ -38,7 +38,7 @@ GOOD_BLOCK:
           urlCon.connect();
           InputStream is = urlCon.getInputStream();
           // WVM.out.println("checking on data stream @ " + WVM.time());
-          //int size = is.available();
+          // int size = is.available();
           int size = urlCon.getContentLength();
           // if (size == 0) continue;
           bytecode = new byte[size];

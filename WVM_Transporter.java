@@ -180,7 +180,7 @@ class WVM_Transporter extends Thread {
     }
   }
   
-  void sendWorklet(Worklet wkl, WorkletJunction wj) {
+  boolean sendWorklet(Worklet wkl, WorkletJunction wj) {
     String targetHost = wj._host;
     int targetPort = wj._port;
     try {
@@ -233,8 +233,12 @@ class WVM_Transporter extends Thread {
       // TODO: set up the BAG-MULTISET in the ClassFileServer so that the 
       // incoming BytecodeRetrieverWJ can get the data it needs
       oos.writeObject(wkl);
-      WVM.out.println("sent out wj to target: " + wj);
+
+      // Receive ACK from the target WVM
+      ObjectInputStream ois = new ObjectInputStream(s.getInputStream());
+      boolean transmissionComplete = ois.readBoolean();
       oos.close();
+      return transmissionComplete;
     } catch (InvalidClassException e) {
       WVM.out.println("InvalidClassException in sendWorklet, e: " + e.getMessage());
       e.printStackTrace();
@@ -250,6 +254,8 @@ class WVM_Transporter extends Thread {
     } catch (IOException e) {
       WVM.out.println("IOException in sendWorklet, e: " + e.getMessage());
       e.printStackTrace();
+    } finally {
+      return false;
     }
   }
 

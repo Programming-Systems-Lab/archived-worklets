@@ -1,3 +1,26 @@
+20 July 2001
+============
+  - make WJ implement runnable instead of Wkl ... this will be needed
+		when we have the WJack dictate that the WKL drop off the WJ and
+		leave it to execute [in its own thread] later on 
+	- add: addNextJunction in Worklet.java
+
+16 July 2001
+============
+  - WVMs require an ACK from peer WVMs confirming receipt of worklets
+
+11 July 2001
+============
+  - add conditional progress of worklets, ie decide to go to Hop_B or
+    Hop_C from Hop_A -- this can be used to have programmable routes
+    for worklets where they can re-visit certain nodes in a loopy
+    fashion
+  - add a central "WorkletEngine" entity to the worklets that will
+    persist throughout the lifetime of the worklet, and can be used
+    to manage and oversee the WorkletJunctions
+  - Use Marshalling to keep unwanted WorkletJunctions unresolved at
+    intermediate hosts
+
 21 June 2001
 ============
   - set the 'origin' site's WebServer URL in each created WorkletJunction
