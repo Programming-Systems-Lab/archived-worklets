@@ -61,7 +61,7 @@ GOOD_BLOCK:
     return defineClass(name, bytecode, 0, bytecode.length);
   }
   static {
-    WVM.out.println("WHAT 2 DO HERE???");
+    // WVM.out.println("WHAT 2 DO HERE???");
   }
   public URL findResource(String name) {
     WVM.out.println("WHAT 2 DO HERE??? Entered findResource in WCKLN for: " + name);

@@ -49,6 +49,10 @@ public final class Worklet implements Runnable, Serializable {
     }
   }
   
+  public WorkletJunction getOriginJunction() {
+    return (_originJunction);
+  }
+
   void init(Object system, WVM wvm) {
     _wvm = wvm;
     _system = system;    

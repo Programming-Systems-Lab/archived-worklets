@@ -177,7 +177,7 @@ public abstract class ClassServer implements Runnable {
   }
       
   public void shutdown() {
-    WVM.out.println ("Shutting down Class Server ...");
+    WVM.out.println ("  Shutting down Class Server ...");
     try {
       server.close();
       server = null;

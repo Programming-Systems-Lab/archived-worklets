@@ -72,9 +72,9 @@ class WVM_RMI_Transporter extends WVM_Transporter {
 
   void setupRMI() {
     // Setup RMI registration
-    final int RMI_RETRIES = 3;
+    final int RMI_RETRIES = 2; 
     int rmiRegistrationCount = 0;
-    while (rmiRegistrationCount++ <= RMI_RETRIES) {
+    while (rmiRegistrationCount++ < RMI_RETRIES) {
       try {
         rtu = new RTU();
         rmiService = true;
@@ -101,7 +101,7 @@ class WVM_RMI_Transporter extends WVM_Transporter {
     // shut down RMIRegistry
     try {
       if (registryService) {
-        WVM.out.println("Shutting down the RMI Registry: " + _host + ":" + _port);
+        WVM.out.println("  Shutting down the RMI Registry: " + _host + ":" + _port);
         Date oldestDate = new Date();
         int nextRegistry = -1;
         WVM_Host wvmH = null;
