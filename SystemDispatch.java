@@ -16,9 +16,15 @@ import java.lang.reflect.*;
 
 public class SystemDispatch implements Serializable {
   public static void main(String args[]) {
-    SystemDispatch sd = new SystemDispatch(args);
+    SystemDispatch sd = new SystemDispatch(null, null, args);
   }
-  private SystemDispatch(String args[]) {
+  SystemDispatch(WVM wvm, WorkletJunction originJunction, String args[]) {
+
+    /*
+     * For use from within another program:
+     * new SystemDispatch(<WVM>, <ORIGIN_JUNCTION>, new String[] { <S>, <S> ... <S> });
+    */
+
     if (args.length < 4) {
       WVM.out.println("usage: java SystemDispatch <rHost> <rName> <rPort> <App> [<App-param>]* [-f <file>]*");
       System.exit(0);
@@ -46,8 +52,11 @@ public class SystemDispatch implements Serializable {
       final Class appClass = Class.forName(App);
       // final Class appClass = Class.forName("gskc.TicTacToe");
 
-      WVM wvm = new WVM(new Object(), InetAddress.getLocalHost().getHostAddress(), "SystemDispatch");
-      Worklet wkl = new Worklet(null);
+      if (wvm == null) {
+        wvm = new WVM(new Object(), InetAddress.getLocalHost().getHostAddress(), "SystemDispatch");
+      }
+
+      Worklet wkl = new Worklet(originJunction);
       wkl.addJunction(new WorkletJunction(rHost, rName, rPort) {
         private final String methodName = "main";
         private final String [] parameters = new String[appArgs.size()];
