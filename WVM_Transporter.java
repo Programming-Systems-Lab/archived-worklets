@@ -31,6 +31,13 @@ class WVM_Transporter extends Thread {
   
   private static final String PING_REQUEST = "Hi, I am pinging you :)";
   private static final String PING_RESPONSE = "Ok, pinging you back!";
+
+  private static final String SENDMSG_REQUEST = "Hi, I am sending you a message :)";
+  private static final String SENDMSG_RESPONSE = "Ok, I received your message!";
+
+  private static final String GETMSG_REQUEST = "Hi, I am want something that you have :)";
+  private static final String GETMSG_RESPONSE = "Ok, here you go, you can have it!";
+
   private static final String WORKLET_XFER = "Yo, I am sending a worklet";
   private static final String WORKLET_RECV = "Yo, I got your worklet";
 
@@ -308,13 +315,23 @@ class WVM_Transporter extends Thread {
     }
   }
   
+  // Client-side - should be overridden ////////////////////////////////////////
   protected boolean ping(String wvmURL) {
-    // 2-do .. well, not really
-    WVM.out.println("WHY AM I EXECUTING? WVM_Transporter.ping(String)");
+    WVM.out.println("SHOULD-BE-OVERRIDDEN! WVM_Transporter.ping(String)");
     return false;
   }
+  protected boolean sendMessage(Object message, String wvmURL) {
+    WVM.out.println("SHOULD-BE-OVERRIDDEN! WVM_Transporter.sendMessage(Object, String)");
+    return false;
+  }
+  protected Object getMessage(Object messageKey, String wvmURL) {
+    WVM.out.println("SHOULD-BE-OVERRIDDEN! WVM_Transporter.getMessage(Object, String)");
+    return null;
+  }
+  // END: Client-side - should be overridden ///////////////////////////////////
   
-  protected boolean ping(String host, int port) {
+  // Client-side ///////////////////////////////////////////////////////////////
+  final boolean ping(String host, int port) {
     // 2-do: really!
     boolean transmissionComplete = false;
     
@@ -349,6 +366,84 @@ class WVM_Transporter extends Thread {
       return transmissionComplete;
     }
   }
+  final boolean sendMessage(Object message, String host, int port) {
+    // 2-do: really!
+    boolean transmissionComplete = false;
+    
+    Socket s = null;
+    ObjectOutputStream oos = null;
+    ObjectInputStream ois = null;
+    
+    try {
+      WVM.out.println("  --  sending message to peer WVM thru sockets: " + host + ":" + port);
+      s = new Socket(host, port);
+
+      // Send request to the peer WVM
+      oos = new ObjectOutputStream(s.getOutputStream());
+      oos.writeUTF(SENDMSG_REQUEST);
+      oos.writeObject(message);
+      oos.flush();
+
+      // Receive ACK from the peer WVM
+      ois = new ObjectInputStream(s.getInputStream());
+      transmissionComplete = ois.readUTF().equals(SENDMSG_RESPONSE);
+
+    } catch (UnknownHostException uhe) {
+      WVM.out.println("UnknownHostException in ping, uhe: " + uhe);
+      // e.printStackTrace();
+    } catch (IOException ioe) {
+      WVM.out.println("IOException in ping, ioe: " + ioe);
+      // e.printStackTrace();
+    } finally {
+      try {
+        if (ois != null) ois.close();
+        if (oos != null) oos.close();
+        if (s != null) s.close();
+      } catch (IOException ioe) { }
+      return transmissionComplete;
+    }
+  }
+  final Object getMessage(Object messageKey, String host, int port) {
+    // 2-do: really!
+    boolean transmissionComplete = false;
+    Object message = null;
+    
+    Socket s = null;
+    ObjectOutputStream oos = null;
+    ObjectInputStream ois = null;
+    
+    try {
+      WVM.out.println("  --  getting message from peer WVM thru sockets: " + host + ":" + port);
+      s = new Socket(host, port);
+
+      // Send request to the peer WVM
+      oos = new ObjectOutputStream(s.getOutputStream());
+      oos.writeUTF(GETMSG_REQUEST);
+      oos.writeObject(messageKey);
+      oos.flush();
+
+      // Receive ACK from the peer WVM
+      ois = new ObjectInputStream(s.getInputStream());
+      message = ois.readObject();
+      transmissionComplete = ois.readUTF().equals(GETMSG_RESPONSE);
+
+    } catch (ClassNotFoundException cnfe) {
+      WVM.out.println("ClassNotFoundException in getMessage, cnfe: " + cnfe);
+    } catch (UnknownHostException uhe) {
+      WVM.out.println("UnknownHostException in getMessage, uhe: " + uhe);
+      // e.printStackTrace();
+    } catch (IOException ioe) {
+      WVM.out.println("IOException in getMessage, ioe: " + ioe);
+      // e.printStackTrace();
+    } finally {
+      try {
+        if (ois != null) ois.close();
+        if (oos != null) oos.close();
+        if (s != null) s.close();
+      } catch (IOException ioe) { }
+      return transmissionComplete ? message : null;
+    }
+  }
+  // END: Client-side //////////////////////////////////////////////////////////
 
 }
-

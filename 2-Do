@@ -1,3 +1,17 @@
+29 November 2001
+================
+  - setSoTimeout on WVM, WVM_Transporter, ClassFileServer threads,
+    and Thread.join() at shutdownHook
+  - WVM_RMI_Transporter$RTU does *not* rebind to the rmiregistry,
+    instead, it binds, and unbinds @ the end .. also, the local
+    rmiregistry will poll bound services to check they're still
+    alive
+  - WVM maintains a message queue for the hostSystem, and provides
+    a mechanism for peer WVMs and their hostSystems to achieve
+    message-passing ... this will be used for control-passing
+  - _activeWorklets is static in WVM .. change this
+  - determine practicality+usage of WVM.getMessage(msgKey);
+
 14 November 2001
 ================
   - SystemDispatch should be able to carry over system property

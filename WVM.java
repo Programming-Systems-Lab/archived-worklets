@@ -15,7 +15,7 @@ import java.util.*;
 public final class WVM extends Thread {
   public static PrintStream out = System.out;
   WVM_Transporter transporter;
-  private Object _system;
+  private final Object _system;
   private final Hashtable _peers = new Hashtable();
   private final Vector _installedWorklets = new Vector();
 
@@ -39,7 +39,6 @@ public final class WVM extends Thread {
   public WVM(Object system, String host, String name, int port) {
     WVM.out.println("WVM created");
     // URL.setURLStreamHandlerFactory(new WVM_URLStreamHandlerFactory());
-    start();
     _system = system;
     try {
       if (host == null) {
@@ -49,6 +48,9 @@ public final class WVM extends Thread {
           host = "127.0.0.1";
         }
       }
+
+      if (name == null) name =  _system.hashCode() + "_" +  System.currentTimeMillis();
+
       transporter = new WVM_RMI_Transporter(this, host, name, port);
       transporter.start();
     } catch (Exception e) {
@@ -60,7 +62,8 @@ public final class WVM extends Thread {
         shutdown();
       }
     });
-  }  
+    start();
+  }
 
   public void shutdown() {
     _peers.clear();
@@ -70,11 +73,11 @@ public final class WVM extends Thread {
       transporter.shutdown();
       transporter = null;
     }
-    _system = null;
+    // _system = null;
     WVM.out.println("WVM destroyed");
   }
 
-  static Hashtable _activeWorklets = new Hashtable();
+  final static Hashtable _activeWorklets = new Hashtable();
   public void run() {
     Worklet _worklet;
     synchronized (this) {
@@ -112,13 +115,38 @@ public final class WVM extends Thread {
     return (transporter.toString());
   }
 
-  public int getPort() {
-    return (transporter._port);
-  }
+  public int getWVMPort() { return (transporter._port); }
+  public String getWVMName() { return (transporter._name); }
+  public String getWVMAddr() { return (transporter._host); }
+  public int getRMIPort() { return (((WVM_RMI_Transporter) transporter)._port); }
   
+  // Client-side ///////////////////////////////////////////////////////////////
   public boolean ping(String wvmURL) {
     return (transporter.ping(wvmURL));
   }
+  public boolean sendMessage(Object message, String wvmURL) {
+    return (transporter.sendMessage(message, wvmURL));
+  }
+  public Object getMessage(Object messageKey, String wvmURL) {
+    return (transporter.getMessage(messageKey, wvmURL));
+  }
+  // END: Client-side //////////////////////////////////////////////////////////
+
+  // Server-side ///////////////////////////////////////////////////////////////
+  private final Vector messageQueue = new Vector();
+  boolean receiveMessage(Object message) {
+    synchronized (messageQueue) {
+      messageQueue.addElement(message);
+      notify(); // wake up the host system, if it is waiting to receive messages
+      return true;
+    }
+  }
+  Object requestMessage(Object messageKey) {
+    // 2-do
+    return null;
+  }
+  // END: Server-side //////////////////////////////////////////////////////////
+
 
   public static void main(String args[]) throws UnknownHostException {
     WVM.out.println("usage: java psl.worklets.WVM <wvmName>");

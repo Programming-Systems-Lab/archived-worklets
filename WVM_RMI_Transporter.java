@@ -20,7 +20,7 @@ class WVM_RMI_Transporter extends WVM_Transporter {
   
   private RTU rtu;
   private boolean rmiService;
-  private int _port = WVM_Host.PORT;
+  int _port;
   private Registry rmiRegistry;
   private boolean registryService;
   private Date creation;
@@ -157,7 +157,15 @@ class WVM_RMI_Transporter extends WVM_Transporter {
     return (" @ " + _host + " : " + super._port);
   }
 
-  protected boolean ping(String wvmURL) {
+  private class WVM_Address {
+    final String host;
+    final String name;
+    final int port;
+    WVM_Address(String rh, String rn, int rp) {
+      host = rh; name = rn; port = rp;
+    }
+  }
+  private WVM_Address parseWVM_URL(String wvmURL) {
     StringTokenizer st = new StringTokenizer(wvmURL, "@: ", true);
     // returns the delimiter characters as tokens as well
     
@@ -188,8 +196,35 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         rName = token;
       }
     }
+    return new WVM_Address(rHost, rName, rPort);
+  }
+
+  // Client-side //////////////////////////////////////////////////////////////
+  protected boolean ping(String wvmURL) {
+    WVM_Address wa = parseWVM_URL(wvmURL);
+    String rHost = wa.host;
+    String rName = wa.name;
+    int rPort = wa.port;
     return ((rmiService && rtu.ping(rHost, rName)) || ping(rHost, rPort));
   }
+
+  protected boolean sendMessage(Object message, String wvmURL) {
+    WVM_Address wa = parseWVM_URL(wvmURL);
+    String rHost = wa.host;
+    String rName = wa.name;
+    int rPort = wa.port;
+    return ((rmiService && rtu.sendMessage(message, rHost, rName)) ||
+      sendMessage(message, rHost, rPort));
+  }
+  protected Object getMessage(Object messageKey, String wvmURL) {
+    WVM_Address wa = parseWVM_URL(wvmURL);
+    String rHost = wa.host;
+    String rName = wa.name;
+    int rPort = wa.port;
+    if (rmiService) return rtu.getMessage(messageKey, rHost, rName);
+    else return getMessage(messageKey, rHost, rPort);
+  }
+  // END: Client-side /////////////////////////////////////////////////////////
 
   class RTU extends UnicastRemoteObject implements WVM_Host {
     
@@ -323,28 +358,66 @@ class WVM_RMI_Transporter extends WVM_Transporter {
       t.start();
     }
     
+    // Client-side ////////////////////////////////////////////////////////////
     boolean ping(String rHost, String rName) {
-      WVM.out.println("  --  pinging peer WVM thru RMI: " + rName + "@" + rHost);
       try {
-        WVM_Host wvmHost = (WVM_Host) Naming.lookup("//" + rHost + ":" + _port + "/" + rName);
-        return wvmHost.ping();
+        WVM.out.println("  --  pinging peer WVM thru RMI: " + rName + "@" + rHost);
+        return ((WVM_Host) Naming.lookup("//" + rHost + ":" + _port + "/" + rName)).ping();
       } catch (NotBoundException e) {
         WVM.out.println("NotBoundException: " + e.getMessage());
         // e.printStackTrace();
       } catch (MalformedURLException e) {
         WVM.out.println("MalformedURLException: " + e.getMessage());
         // e.printStackTrace();
-      } catch (RemoteException e) {
-        WVM.out.println("RemoteException: " + e.getMessage());
-        // e.printStackTrace();
+      } catch (RemoteException rmie) {
+        WVM.out.println("RemoteException: " + rmie);
       }
       return false;
     }
-    
+    boolean sendMessage(Object message, String rHost, String rName) {
+      try {
+        WVM.out.println("  --  sending a message to a peer WVM thru RMI: " + rName + "@" + rHost);
+        return ((WVM_Host) Naming.lookup("//" + rHost + ":" + _port + "/" + rName)).receiveMessage(message);
+      } catch (NotBoundException e) {
+        WVM.out.println("NotBoundException: " + e.getMessage());
+        // e.printStackTrace();
+      } catch (MalformedURLException e) {
+        WVM.out.println("MalformedURLException: " + e.getMessage());
+        // e.printStackTrace();
+      } catch (RemoteException rmie) {
+        WVM.out.println("RemoteException: " + rmie);
+      }
+      return false;
+    }
+    Object getMessage(Object messageKey, String rHost, String rName) {
+      try {
+        WVM.out.println("  --  getting a message from a peer WVM thru RMI: " + rName + "@" + rHost);
+        return ((WVM_Host) Naming.lookup("//" + rHost + ":" + _port + "/" + rName)).requestMessage(messageKey);
+      } catch (NotBoundException e) {
+        WVM.out.println("NotBoundException: " + e.getMessage());
+        // e.printStackTrace();
+      } catch (MalformedURLException e) {
+        WVM.out.println("MalformedURLException: " + e.getMessage());
+        // e.printStackTrace();
+      } catch (RemoteException rmie) {
+        WVM.out.println("RemoteException: " + rmie);
+      }
+      return null;
+    }
+    // END: Client-side ///////////////////////////////////////////////////////
+
+    // Server-side ////////////////////////////////////////////////////////////
     public boolean ping() throws RemoteException {
       WVM.out.println("  --  being PINGED thru RMI");
       return true;
     }
+    public boolean receiveMessage(Object msg) throws RemoteException {
+      return _wvm.receiveMessage(msg);
+    }
+    public Object requestMessage(Object messageKey) throws RemoteException {
+      return _wvm.requestMessage(messageKey);
+    }
+    // END: Server-side ///////////////////////////////////////////////////////
 
   }
 
