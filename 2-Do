@@ -1,13 +1,17 @@
+24 July 2001
+============
+  - incorporate a 'ping' mechamism in WVMs                            ;)
+
 20 July 2001
 ============
   - make WJ implement runnable instead of Wkl ... this will be needed
-		when we have the WJack dictate that the WKL drop off the WJ and
-		leave it to execute [in its own thread] later on 
-	- add: addNextJunction in Worklet.java
+    when we have the WJack dictate that the WKL drop off the WJ and
+    leave it to execute [in its own thread] later on 
+  - add: addNextJunction in Worklet.java
 
 16 July 2001
 ============
-  - WVMs require an ACK from peer WVMs confirming receipt of worklets
+  - WVMs require an ACK from peer WVMs confirming receipt of worklets ;)
 
 11 July 2001
 ============
@@ -23,7 +27,7 @@
 
 21 June 2001
 ============
-  - set the 'origin' site's WebServer URL in each created WorkletJunction
+  - set the 'origin' site's WebServer URL in each created WJ
   - get rid of last-host, last-name, last-port info .. or put it to
     better use, e.g. use this as well as last-WebServer as part of
     the 'route' of the Worklet
