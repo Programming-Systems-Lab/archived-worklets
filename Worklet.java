@@ -1,4 +1,4 @@
-package psl.worklets;
+ package psl.worklets;
 
 /* CVS version control block - do not edit manually
  *  $RCSfile$
@@ -83,7 +83,7 @@ public final class Worklet implements Serializable {
         // 2-do: existing super-priority thread to inherit higher priorities from ... 
         WorkletJunction _wj = _atOrigin ? _originJunction : _currentJunction;
         Thread t = new Thread(_wj, _hashCode);
-        t.setPriority(_originJunction._priority);
+				t.setPriority(_wj.getPriority());
         t.start();
         
         if (_atOrigin || !_currentJunction.dropOff()) {
@@ -133,8 +133,18 @@ public final class Worklet implements Serializable {
     _lName = _wvm.transporter._name;
     _lPort = _wvm.transporter._port;
 
-    // Use local WVM to catapult to next junction
-    _tmpWVM.transporter.sendWorklet(this, _currentJunction);
+		// todo: locate and use predefined WVM URL comparison function.
+		// note: hopefully that predefined WVM function resolves the difference
+		// between 'localhost' and 127.0.0.1, and the computer's actual ip!!!
+		if (_lHost == _currentJunction._host && 
+  		 (_lName == _currentJunction._name || _lPort == _currentJunction._port)) {
+
+				_wvm.installWorklet(this);
+
+		} else {
+			// Use local WVM to catapult to next junction
+			_tmpWVM.transporter.sendWorklet(this, _currentJunction);
+		}
   }
 
   void returnToOrigin() {
@@ -147,10 +157,18 @@ public final class Worklet implements Serializable {
     _lPort = _wvm.transporter._port;
 
     if (_originJunction != null) {
-      // Use local system to catapult self back to home
-      _tmpWVM.transporter.sendWorklet(this, _originJunction);
-    }
-  }
+			// todo: locate and use predefined WVM URL comparison function.
+			if (_lHost == _originJunction._host && 
+			(_lName == _originJunction._name || _lPort == _originJunction._port)) {
+
+      _wvm.installWorklet(this);
+				
+		  } else {
+        // Use local system to catapult self back to home
+        _tmpWVM.transporter.sendWorklet(this, _originJunction);
+			}
+		}
+	}
 
   int getNumClasses() {
     return (_wjClasses.size());
