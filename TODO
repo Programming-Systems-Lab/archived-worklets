@@ -1,3 +1,9 @@
+05 April 2001
+=============
+  - Signed WorkletJunctions, c.f. PGP
+  - Domains / levels for NRL worklets, ordered by
+    security or clearance
+
 28 March 2001
 =============
   - RMI will load the classes from the source site's http server

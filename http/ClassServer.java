@@ -196,7 +196,7 @@ public abstract class ClassServer implements Runnable {
     // eat the rest of header
     do {
       line = in.readLine();
-      WVM.out.println (" + + + " + line);            
+      // WVM.out.println (" + + + " + line);            
     } while ((line.length() != 0) && (line.charAt(0) != '\r') && (line.charAt(0) != '\n'));
     if (path.length() != 0) {
       // WVM.out.println("Edited: gskc, 19Feb01 --- returning path: " + path);
