@@ -19,5 +19,9 @@ interface WVM_Host extends java.rmi.Remote {
   // returns the Date of creation for this WVM_Host
 
   public void createRegistry() throws RemoteException;
-  // makes this WVM_Host create a local RMI Registry    public boolean ping() throws RemoteException;  // used to, well, ping the remote WVM
+  // makes this WVM_Host create a local RMI Registry
+  
+  public boolean ping() throws RemoteException;
+  // used to, well, ping the remote WVM
 }
+

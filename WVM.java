@@ -111,8 +111,11 @@ public final class WVM extends Thread {
 
   public int getPort() {
     return (transporter._port);
-  }    public boolean ping(String wvmURL) {
-    return (transporter.ping(wvmURL));  }
+  }
+  
+  public boolean ping(String wvmURL) {
+    return (transporter.ping(wvmURL));
+  }
 
   public static void main(String args[]) throws UnknownHostException {
     WVM.out.println("usage: java psl.worklets.WVM <wvmName>");
@@ -121,3 +124,4 @@ public final class WVM extends Thread {
   }
 
 }
+

@@ -156,19 +156,38 @@ class WVM_RMI_Transporter extends WVM_Transporter {
     return (" @ " + _host + " : " + super._port);
   }
 
-  protected boolean ping(String wvmURL) {    StringTokenizer st = new StringTokenizer(wvmURL, "@: ", true);    // returns the delimiter characters as tokens as well        String rHost = "";    String rName = "";    int rPort = 0;        boolean found_AT = false;    boolean found_COLON = false;    
-    while (st.hasMoreTokens()) {      String token = st.nextToken();      if (token.equals(":")) {
+  protected boolean ping(String wvmURL) {
+    StringTokenizer st = new StringTokenizer(wvmURL, "@: ", true);
+    // returns the delimiter characters as tokens as well
+    
+    String rHost = "";
+    String rName = "";
+    int rPort = 0;
+    
+    boolean found_AT = false;
+    boolean found_COLON = false;
+    
+    while (st.hasMoreTokens()) {
+      String token = st.nextToken();
+      if (token.equals(":")) {
         found_COLON = true;
         continue;
       }
-            if (token.equals("@")) {
+      
+      if (token.equals("@")) {
         found_AT = true;
         continue;
-      }            if (found_COLON) {        rPort = Integer.parseInt(token);      } else if (found_AT) {
-        rHost = token;      } else {
-        rName = token;      }
+      }
+      
+      if (found_COLON) {
+        rPort = Integer.parseInt(token);
+      } else if (found_AT) {
+        rHost = token;
+      } else {
+        rName = token;
+      }
     }
-        return ((rmiService && rtu.ping(rHost, rName)) || ping(rHost, rPort));
+    return ((rmiService && rtu.ping(rHost, rName)) || ping(rHost, rPort));
   }
 
   class RTU extends UnicastRemoteObject implements WVM_Host {
@@ -303,7 +322,11 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         }
       };
       t.start();
-    }        boolean ping(String rHost, String rName) {      try {
+    }
+    
+    boolean ping(String rHost, String rName) {
+      WVM.out.println("  --  pinging peer WVM thru RMI: " + rName + "@" + rHost);
+      try {
         WVM_Host wvmHost = (WVM_Host) Naming.lookup("//" + rHost + ":" + _port + "/" + rName);
         return wvmHost.ping();
       } catch (NotBoundException e) {
@@ -315,12 +338,14 @@ class WVM_RMI_Transporter extends WVM_Transporter {
       } catch (RemoteException e) {
         WVM.out.println("RemoteException: " + e.getMessage());
         // e.printStackTrace();
-      } finally {
-        return false;
       }
+      return false;
     }
-        public boolean ping() throws RemoteException {
-      return true;    }
+    
+    public boolean ping() throws RemoteException {
+      WVM.out.println("  --  being PINGED thru RMI");
+      return true;
+    }
 
   }
 
