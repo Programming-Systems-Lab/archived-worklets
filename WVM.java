@@ -22,7 +22,7 @@ import java.util.*;
 import psl.worklets.WVMRSL.Registration;
 
 public final class WVM extends Thread {
-  public static PrintStream out = WVM.out;
+  public static PrintStream out = System.out;
   WVM_Transporter transporter;
   private final Object _system;
   private final Hashtable _peers = new Hashtable();
@@ -83,7 +83,7 @@ public final class WVM extends Thread {
         _myStats.log("Registration UNSUCCESFUL");
       }
     } else {
-      WVM.out.println("Could not init Registration object");
+      // WVM.out.println("Could not init Registration object");
     }
     
     Runtime.getRuntime().addShutdownHook(new Thread() {
