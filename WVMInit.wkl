@@ -1,0 +1,92 @@
+import sys
+import cPickle
+sys.add_package('psl.worklets')
+sys.add_package('__main__')
+
+import psl.worklets
+import __main__
+# import psl.worklets.rmi.*;
+
+
+def xprint( s ):
+  print s
+
+# loadWorklet loads a worklet in from a file name
+_loadWorkletHelp = "usage: loadWorklet( filename );\nLoads a worklet script from the given pathname."
+def loadWorklet(filename):
+  if (not psl.worklets.WVM.addWorkletFromFile(filename)):
+    print("Error loading " + filename)
+
+# print out the list of loaded worklets
+_showWorkletsHelp = "usage: showWorklets();\nPrints a list of currently loaded Worklets."
+def showWorklets(self):
+  ret = psl.worklets.WVM.listWorkletsArray()
+  for wklt in ret:
+    print wklt
+
+def reconstitute(f):
+  print "Trying to reconstitute state from pickle ",
+  w = cPickle.load(f)
+
+class Worklet:
+
+  _source = ""
+
+  def packUp(self):
+    if interp.isConsoleMode():
+      console = 1
+    if interp.isInteractive():
+      interactive = 1
+    return self.__dict__;
+
+  # getEnvironmentName returns a string name for the local WVM
+  def getEnvironmentName(self):
+    return interp.getEnvironmentName()
+
+  # setPrompt sets the local prompt in a console
+  _setPromptHelp = "usage: setPrompt( \"new prompt\" );\nSet the console prompt."
+  def setPrompt(self, prompt):
+    if interp.isInteractive():
+      interp.interact.setPrompt(prompt)
+
+  # authenticate with a remote WVM via RMI
+  _RMIauthenticateHelp = "usage: RMIauthenticate(server, port, id, key);\nAuthenticates (via RMI) with a remote WVM."
+  def RMIauthenticate(self, server, port, id, key):
+    return psl.worklets.WVMrmi.authenticate(server, port, id, key)
+
+  # send a worklet to a remote WVM via RMI
+  _RMIsendWorkletHelp = "usage: RMIsendWorklet(server, port, auth, wname);\nSend worklet 'wname' to the server/port via RMI.  auth is an authorization object returned from RMIauthenticate."
+  def RMIsendWorklet(self, server, port, auth, name):
+    return psl.worklets.WVMrmi.sendWorklet(server, port, auth, name)
+
+  def init(self):
+    print("Worklet Virtual Machine v"+psl.worklets.WVM.version)
+    print("Programming Systems Lab")
+    print("Columbia University")
+    print("Copyright 1998-1999 by Trustees of Columbia University")
+    print("All Rights Reserved")
+    print("")
+    print("Interpreter init...")
+    print(" Local Environment Name: " + self.getEnvironmentName() )
+    self.setPrompt("WVM> ")
+    print("WVM Ready.")
+    print("")
+#    print self.init.im_func.func_globals
+    return 1
+
+  def getName(self):
+    return "POO!"
+
+  def getDescription(self):
+    return "NAH!"
+
+  def activate(self):
+    None
+
+
+#w = Worklet()
+
+
+
+
+
