@@ -18,6 +18,7 @@ import java.net.*;
 import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.Iterator;
+import java.util.Hashtable;
 import java.util.jar.*;
 import java.util.zip.*;
 import psl.worklets.*;
@@ -81,7 +82,13 @@ public class ClassFileServer extends ClassServer {
     byte[] bytecodes = null;
     File f = null;
     
-    // WVM.out.println ("\tLooking for CLASS: " + path);
+    // WVM.out.println ("Looking for CLASS: " + path);
+
+    // retrieve previously-cached bytecode: added Gskc @ 21March2001
+    if (bytecodeCache.containsKey(path)) {
+      WVM.out.println("Serving cached bytecode for class: " + path);
+      return ((byte []) bytecodeCache.get(path));
+    }
     
     if (default_codebase != null) {
       f = findFile(default_codebase, path);
@@ -116,11 +123,11 @@ public class ClassFileServer extends ClassServer {
           if (bytecodes != null) {
             return bytecodes;
           }
-        }  else {
+        } else {
           return classExtract(f);
         }
       }  
-     }  
+    }  
     
     if (f == null || !f.exists()) {
       // WVM.out.println( path + " Not Found" );

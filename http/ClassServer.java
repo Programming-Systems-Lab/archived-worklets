@@ -18,6 +18,7 @@ package psl.worklets.http;
 
 import java.io.*;
 import java.net.*;
+import java.util.*;
 import psl.worklets.*;
 
 /**
@@ -94,6 +95,8 @@ implements Runnable
      */
     public abstract byte[] getBytes(String path) throws IOException, ClassNotFoundException;
 
+    static Hashtable bytecodeCache = new Hashtable();
+  
     /**
      * The "listen" thread that accepts a connection to the
      * server, parses the header to obtain the class file name
@@ -130,7 +133,13 @@ implements Runnable
                 String path = getPath(in);
                 // retrieve bytecodes
                 byte[] bytecodes = getBytes(path);
-                              
+
+                // cache the bytecodes to be sent out: added Gskc @ 21March2001
+                if (!bytecodeCache.containsKey(path)) {
+                  WVM.out.println("Caching bytecode for class: " + path);
+                  bytecodeCache.put(path, bytecodes);
+                }
+
                 // send bytecodes in response (assumes HTTP/1.0 or later)
                 try
                 {

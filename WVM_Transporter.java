@@ -96,7 +96,7 @@ class WVM_Transporter extends Thread {
         ObjectInputStream ois = new ObjectInputStream(s.getInputStream()) {
           protected Class resolveClass(ObjectStreamClass v) throws IOException, ClassNotFoundException {
             Class c = Class.forName(v.getName(), true, _loader);
-            // WVM.out.println("Trying to resolve class: " + c);
+            WVM.out.println("Trying to resolve class: " + c);
             return ( (c == null) ? super.resolveClass(v) : c );
           }
         };
@@ -190,6 +190,7 @@ class WVM_Transporter extends Thread {
 
       oos.writeObject(wkl);
       // WVM.out.println("sent out wj to target: " + wkl);
+			oos.close();
     } catch (InvalidClassException e) {
       WVM.out.println(e.getMessage());
       e.printStackTrace();

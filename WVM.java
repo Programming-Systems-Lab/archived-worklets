@@ -19,14 +19,14 @@ public final class WVM extends Thread {
   private Object _system;
   private final Hashtable _peers = new Hashtable();
   private final Vector _installedWorklets = new Vector();
-  
+
   public WVM(Object system, String host, String name) {
     this(system, host, name, WVM_Host.PORT);
   }  
 
   public WVM(Object system, String host, String name, int port) {
     WVM.out.println("WVM created");
-    this.start();
+    start();
     _system = system;
     try {
       transporter = new WVM_RMI_Transporter(this, host, name, port);

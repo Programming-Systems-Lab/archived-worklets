@@ -21,6 +21,8 @@ public abstract class WorkletJunction implements Serializable {
 
   protected WorkletJunction _originJunction;
 
+  int _state;
+
   public WorkletJunction(String host, String name) {
     this(host, name, WVM_Host.PORT);
   }
@@ -33,6 +35,7 @@ public abstract class WorkletJunction implements Serializable {
     _host = host;
     _name = name;
     _port = port;
+    _state = WorkletJacket.STATE_READY;
   }
 
   void setOriginWorkletJunction(WorkletJunction origin) {
@@ -42,6 +45,24 @@ public abstract class WorkletJunction implements Serializable {
   protected void init(Object system, WVM wvm) {
     _system = system;
     _wvm = wvm;
+  }
+
+  void run() {
+    while (_state == WorkletJacket.STATE_READY) {
+      try {
+        synchronized (this) {
+          Thread.currentThread().wait();
+          // Thread.currentThread().sleep(500);
+        }
+      } catch (InterruptedException e) { }
+    }
+
+    while (_state != WorkletJacket.STATE_TERMINATED) {
+      if (_state == WorkletJacket.STATE_WAITING) {
+        // wait until state can be changed into running
+      }
+      execute();
+    }
   }
 
   protected abstract void execute();
