@@ -2,7 +2,7 @@
  * @(#)testPrio.java
  *
  * Copyright (c) 2001: The Trustees of Columbia University in the City of New York.  All Rights Reserved
- * 
+ *
  * Copyright (c) 2001: @author Dan Phung (dp2041@cs.columbia.edu)
  * Modified from SystemDispatch.java
  *
@@ -13,16 +13,17 @@
  *  $Source$
  */
 
+package psl.worklets;  // because we need to manipulate the thread priorities.
+
 import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.lang.reflect.*;
-import psl.worklets.*;
 
 /**
  * The <code>testPrio</code> is a program to test the priority
  * setting of Worklets.  Found that for Linux systems there was
- * no effect, and for Windows systems priority setting works 
+ * no effect, and for Windows systems priority setting works
  * correctly.
  *
  * @version	$Revision$ $Date$
@@ -37,7 +38,7 @@ public class testPrio extends Thread implements Serializable {
       WVM.out.println("usage: java testPrio <rHost> <rName> <rPort>");
       System.exit(0);
     }
-	
+
     String rHost = args[0];
     String rName = args[1];
     int rPort = Integer.parseInt(args[2]);
@@ -49,7 +50,7 @@ public class testPrio extends Thread implements Serializable {
       WVM.out.println("Exception: " + e.getMessage());
       e.printStackTrace();
       System.exit(0);
-    } 
+    }
 
     WorkletID id = new WorkletID("testPrio");
     Worklet wkl = new Worklet(originJunction);
