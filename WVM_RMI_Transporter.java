@@ -84,10 +84,9 @@ class WVM_RMI_Transporter extends WVM_Transporter {
     rmiService = false;
   }
 
-  protected void shutdown() {
+  void shutdown() {
     // shut down communications
     rtu.shutdown();
-    super.shutdown();
 
     // shut down RMIRegistry
     try {
@@ -128,7 +127,7 @@ class WVM_RMI_Transporter extends WVM_Transporter {
     }
   }
   
-  protected void sendWorklet(Worklet wkl, WorkletJunction wj) {
+  void sendWorklet(Worklet wkl, WorkletJunction wj) {
     if (rmiService) {
       try {
         WVM.out.println("  --  Sending worklet thru RMI");
@@ -136,11 +135,16 @@ class WVM_RMI_Transporter extends WVM_Transporter {
         return;
       } catch (RemoteException e) {
         WVM.out.println("  --  Cannot send worklets thru RMI, defaulting to sockets");
-        e.printStackTrace();
+        // e.printStackTrace();
       }
     }
     super.sendWorklet(wkl, wj);
   }
+
+	public String toString() {
+		if (rmiService) return (_name + " @ " + _host + " : " + _port);
+		return (_host + " : " + _port);
+	}
 
   class RTU extends UnicastRemoteObject implements WVM_Host {
     

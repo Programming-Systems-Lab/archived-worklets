@@ -45,8 +45,10 @@ public final class WVM extends Thread {
     _peers.clear();
     _installedWorklets.clear();
 
-    transporter.shutdown();
-    transporter = null;
+    if (transporter != null) {
+			transporter.shutdown();
+    	transporter = null;
+		}
     _system = null;
     WVM.out.println("WVM destroyed");
   }
@@ -79,7 +81,11 @@ public final class WVM extends Thread {
     _worklet.init(_system, this);
     _worklet.execute();
   }
-  
+
+	public String toString() {
+		return (transporter.toString());
+	}
+
   public static void main(String args[]) throws UnknownHostException {
 		WVM.out.println("usage: java psl.worklets.WVM <wvmName>");
 		String rmiName = args.length == 0 ? "WVM" : args[0];

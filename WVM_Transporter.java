@@ -15,21 +15,21 @@ import psl.worklets.http.*;
 
 class WVM_Transporter extends Thread {
   
-  protected WVM _wvm;
+  WVM _wvm;
   private ServerSocket _socket;
   
-  protected int     _port;
-  protected String  _host; 
-  protected String  _name;
+  int     _port;
+  String  _host; 
+  String  _name;
 
   private boolean _isActive = false;
 
   private WVM_ClassLoader _loader;
-  protected ClassFileServer _webserver;
-  protected int _webPort;
-  protected boolean _isClassServer;
+  ClassFileServer _webserver;
+  int _webPort;
+  boolean _isClassServer;
 
-  protected WVM_Transporter(WVM wvm, String host, String name, int port) {
+  WVM_Transporter(WVM wvm, String host, String name, int port) {
     WVM.out.println("Creating the sockets transporter layer for the WVM");
 
     // Setup socket
@@ -71,7 +71,7 @@ class WVM_Transporter extends Thread {
     start();
   }
   
-  protected void shutdown() {
+  void shutdown() {
     _isActive = false;
     try {
       _socket.close();
@@ -124,6 +124,8 @@ class WVM_Transporter extends Thread {
           System.exit(0);
         }
         _wvm.installWorklet(wkl);
+      } catch (SocketException e) {
+        WVM.out.println("SocketException e: " + e.getMessage());
       } catch (IOException e) {
         WVM.out.println("IOException e: " + e.getMessage());
         e.printStackTrace();
@@ -153,7 +155,7 @@ class WVM_Transporter extends Thread {
     }
   }
   
-  protected void sendWorklet(Worklet wkl, WorkletJunction wj) {
+  void sendWorklet(Worklet wkl, WorkletJunction wj) {
     String targetHost = wj._host;
     int targetPort = wj._port;
     try {

@@ -1,3 +1,15 @@
+18 March 2001
+=============
+  - Same JVM cannot shutdown an RMIRegistry and start another one ... 
+	- have a -v ... --visual option to WVM .. to indicate VISUAL
+
+15 March 2001
+=============
+  - http://www.javaworld.com/javaworld/jw-10-1996/jw-10-indepth-2.html
+	  add to ClassLoader: if className.startWith("psl.worklets"), throw
+		new ClassNotFoundException: this will prevent classloaders from
+		loading any "new" psl.worklets class
+
 12 March 2001
 =============
   - use RMISocketFactory for +1 Registries in the same JVM
