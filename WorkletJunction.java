@@ -46,6 +46,8 @@ public abstract class WorkletJunction extends Thread implements Serializable, Ru
   protected WorkletJunction _originJunction;
   protected Hashtable _payload;
 
+  int _state = 0; // this is left here for backwards compatibility with WJackCondition
+
   // ------------------------------------------------------------------------------------ //
   // ---------------------------- SET OF CONSTRUCTORS ----------------------------------- //
   // ------------------------------------------------------------------------------------ //
