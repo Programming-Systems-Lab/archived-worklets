@@ -25,7 +25,7 @@ import psl.worklets.http.*;
  * The {@link WVM}'s network transport layer that handles
  * communication of {@link Worklet}s
  */
-class WVM_Transporter extends Thread {
+public class WVM_Transporter extends Thread {
 
   /** The {@link WVM} that this WVM_Transporter provides services for */
   WVM _wvm;
@@ -95,6 +95,12 @@ class WVM_Transporter extends Thread {
   /** identifier for reception of a worklet */
   protected static final String WORKLET_RECV = "Yo, I got your worklet";
 
+    protected static final String BYTECODE_XFER = "Yo, I am sending SOME BYTECODE";
+    /** identifier for reception of a bytecode */
+    protected static final String BYTECODE_RECV = "Yo, I got your BYTECODE";
+   
+    //loader to use when receiving a worklet
+    WorkletClassLoader _ldr;
   /**
    * Creates the {@link WVM} related network layer composed of sockets
    *
@@ -183,8 +189,8 @@ class WVM_Transporter extends Thread {
         // WVM.err.println("Exception from loading urls in class loader: " + murle);
       }
     }
-    if (_securityLevel > WVM.NO_SECURITY) _loader = new WVM_ClassLoader(urls, _WVM_sf);
-    else _loader = new WVM_ClassLoader(urls);
+    // if (_securityLevel > WVM.NO_SECURITY) _loader = new WVM_ClassLoader(urls, _WVM_sf);
+    //else _loader = new WVM_ClassLoader(urls);
   }
 
   /**
@@ -218,6 +224,8 @@ class WVM_Transporter extends Thread {
    * @return port number of succesful server socket
    */
   private int createServerSocket(int startPort, String type){
+      
+   	//   System.out.println("WVM_Transporter: CreateServerSocket " + startPort);
     int currentPort = startPort;
     while (currentPort >= startPort) {
       try {
@@ -283,6 +291,7 @@ class WVM_Transporter extends Thread {
    * @param socketType: type of server socket ("plain" or "secure")
    */
   private void listenSocket(final ServerSocket s, final String socketType) {
+   	//   System.out.println("WVM_Transporter: listenSocket");
     if (s == null) return;
     new Thread() {
       public void run() {
@@ -310,13 +319,15 @@ class WVM_Transporter extends Thread {
   private void processSocketStream(Socket s, String socketType){
     ObjectInputStream ois = null;
     ObjectOutputStream oos = null;
+    WorkletClassLoader temp;
 
     try {
       ois = new ObjectInputStream(s.getInputStream()) {
         protected Class resolveClass(ObjectStreamClass v) throws IOException, ClassNotFoundException {
         String name = v.getName();
-        Class c = Class.forName(name, true, _loader);
-        // WVM.out.println("In custom ObjectInputStream, trying to resolve class: " + c);
+	//	System.out.println("processSocketStream: Class.forName");
+        Class c = Class.forName(name, true, _ldr);
+        WVM.out.println("In custom ObjectInputStream, trying to resolve class: " + c);
         return ( (c == null) ? super.resolveClass(v) : c );
         }
         };
@@ -363,6 +374,34 @@ class WVM_Transporter extends Thread {
         }
         oos.writeUTF(GETMSG_RESPONSE); oos.flush();
         return;
+      } else if (requestType.equals(BYTECODE_XFER)) {
+	  //receive pre-sent byte code
+	  String _rHost = ois.readUTF();
+	  String _rName = ois.readUTF();
+	  int _rPort = ois.readInt();
+	  URL u = new URL((String)ois.readObject());
+	  String _wid = (String)ois.readObject();
+	  String name = (String)ois.readObject();
+	//	  WVM.out.println("PROCESSING INCOMING BYTECODE FOR " + _wid + " " + name);
+	  int length = ois.readInt();
+	  byte []bc = new byte[length];
+	  ois.readFully(bc,0,length);
+	  URL [] us = new URL[1];
+	  us[0] = u;
+	  //store it in the corresponding class loader
+	  // if not present , create new one...
+	  if(WVM.wkltRepository.containsKey(_wid)){
+	      WVM.wkltRepository.putByteCode(_wid, name, bc);
+	  }else{
+	      WorkletClassLoader _wldr = new WorkletClassLoader(us, _WVM_sf,_wid);
+	      _wldr.putByteCode(name,bc);
+	      WVM.wkltRepository.put(_wid,_wldr);
+	  }
+	   // Now, send acknowledgement back to sender WVM
+	  oos.writeUTF(BYTECODE_RECV);
+	  oos.flush();
+	  return;
+	  
       } else if (! requestType.equals(WORKLET_XFER)) {
         // what kinda request is this anyway?
         WVM.out.println("  --  received a random request!");
@@ -372,9 +411,41 @@ class WVM_Transporter extends Thread {
       WVM.out.println("    received a worklet");
       classHashSet = new HashSet();
 
+
+      Vector urlsVec = null;
+      if (_securityLevel < WVM.HIGH_SECURITY)
+	  urlsVec = _webserver.getAliases();
+      if (_securityLevel > WVM.NO_SECURITY)
+	  urlsVec = _sslwebserver.getAliases();
+      
+      URL urls[] = new URL[urlsVec.size()];
+      String protocol = "";
+      if (_securityLevel > WVM.NO_SECURITY)
+	  protocol = "https:";
+      else
+	  protocol = "file:";
+      for (int i=0; i<urls.length; i++) {
+	  try {
+	      urls[i] = new URL(protocol + urlsVec.elementAt(i));
+	  } catch (MalformedURLException murle) {
+	      // WVM.err.println("Exception from loading urls in class loader: " + murle);
+	  }
+      }
+     
+
       String rHost = ois.readUTF();
       String rName = ois.readUTF();
       int rPort = ois.readInt();
+      String wid = (String)ois.readObject();
+      if(WVM.wkltRepository.containsKey(wid)){
+	  _ldr = (WorkletClassLoader)WVM.wkltRepository.get(wid);
+	  
+      } else {
+	//	  System.out.println("WORKLET ID IS " + wid);
+	  if (_securityLevel > WVM.NO_SECURITY) temp = _ldr = new WorkletClassLoader(urls, _WVM_sf,wid);
+	  else temp = _ldr = new WorkletClassLoader(urls,wid);
+	  WVM.wkltRepository.put(wid,temp);
+      }
 
       int numJunctions = ois.readInt();
       while (numJunctions-- > 0) {
@@ -382,7 +453,8 @@ class WVM_Transporter extends Thread {
         String codebase = ois.readUTF();
         try {
           addCodebase(codebase);
-          Class loadCl = _loader.loadClass(cName);
+		//  System.out.println("LOADING CLASS: " + cName);
+          Class loadCl = _ldr.loadClass(cName);
           // WVM.out.println("finally loaded class: " + loadCl);
         } catch (ClassNotFoundException e) {
           WVM.out.println ("WVM Transporter Exception: Class " + cName + " could not be loaded from codebase: " + codebase);
@@ -433,6 +505,7 @@ class WVM_Transporter extends Thread {
       } catch (IOException ioe) { }
     }
     WVM.out.println();
+    _ldr = null;
     return;
   }
 
@@ -458,10 +531,10 @@ class WVM_Transporter extends Thread {
     // urlsVec = new Vector(new HashSet(urlsVec));
     URL urls[] = new URL[urlsVec.size()];
     urlsVec.toArray(urls);
-    if (_loader == null) {
+    if (_ldr == null) {
       _loader = new WVM_ClassLoader(urls);
     } else {
-      _loader.addCodebase(urls);
+      _ldr.addCodebase(urls);
     }
   }
 
@@ -477,6 +550,7 @@ class WVM_Transporter extends Thread {
    * @return success of the send
    */
   boolean sendWorklet(Worklet wkl, WorkletJunction wj) {
+    	//  System.out.println("WVM_Transporter: sendWorklet");
     String[] methods = wj.getTransportMethods();
 
     boolean success = false;
@@ -514,6 +588,7 @@ class WVM_Transporter extends Thread {
    * @return success of the send
    */
   boolean sendSocket(Worklet wkl, WorkletJunction wj, boolean secure){
+    	//  System.out.println("WVM_Transporter: sendSocket");
     String targetHost = wj._host;
     int targetPort = wj._port;
     boolean transmissionComplete = false;
@@ -535,7 +610,8 @@ class WVM_Transporter extends Thread {
       oos.writeUTF(_host);
       oos.writeUTF(_name);
       oos.writeInt(_port);
-
+      oos.writeObject(wkl.wid);
+    	//  System.out.println("SENDING WORKLET ID IS " + wkl.wid);
       {
         ClassLoader sysCll = ClassLoader.getSystemClassLoader();
         Enumeration e = wkl.getClasses();
@@ -600,8 +676,8 @@ class WVM_Transporter extends Thread {
         WVM.out.println("      SecurityException in sendWorklet: " + e.getMessage());
         // e.printStackTrace();
     } catch (IOException e) {
-        WVM.out.println("      IOException in sendWorklet: " + e.getMessage());
-        // e.printStackTrace();
+	//  WVM.out.println("      IOException in sendWorklet: " + e.getMessage());
+        //e.printStackTrace();
     } finally {
       try {
         if (ois != null) ois.close();
@@ -612,6 +688,106 @@ class WVM_Transporter extends Thread {
       return transmissionComplete;
     }
   }
+
+
+
+    // pre-send byte code for .class files
+    // used by ClassServer
+    public boolean sendByteCode(String wid, String name,byte[] bytecode,String u){
+	//	System.out.println("WVM_Transporter: sendBYTECODE");
+	Vector v = _wvm.getRegJunctions(wid);
+	if(v == null){
+	 	//   System.out.println("JUNCTIONS CVECTOR IS NULL");
+	}
+	boolean transmissionComplete = false;
+	for(int i = 0;i < v.size();i++){
+	    WorkletJunction wj = (WorkletJunction)v.elementAt(i);
+	    String targetHost = wj._host;
+	    int targetPort = wj._port;
+	  	//  System.out.println("Target: "+targetHost+" "+targetPort);
+	    Socket s = null;
+	    
+	    ObjectOutputStream oos = null;
+	    ObjectInputStream ois = null;
+	    
+	    try {
+		if (_securityLevel > WVM.NO_SECURITY && _WVM_sf != null)
+		    //	if (secure && _WVM_sf != null)
+		    s = _WVM_sf.createSocket(targetHost, targetPort);
+		else// if (!secure)
+		    s = new Socket(targetHost, targetPort);
+		//	else
+		//   return false;
+		
+		oos = new ObjectOutputStream(s.getOutputStream());
+		oos.writeUTF(BYTECODE_XFER);
+		oos.writeUTF(_host);
+		oos.writeUTF(_name);
+		oos.writeInt(_port);
+		oos.writeObject(u);
+		oos.writeObject(wid);
+		oos.writeObject(name);
+		//	System.out.println("SENDING WORKLET ID IS " + wid);
+		oos.writeInt(java.lang.reflect.Array.getLength(bytecode));
+		oos.write(bytecode);
+		
+		oos.flush();
+		
+		// Receive ACK from the target WVM
+		ois = new ObjectInputStream(s.getInputStream());
+		transmissionComplete = ois.readUTF().equals(BYTECODE_RECV);
+	    } catch (InvalidClassException e) {
+		WVM.out.println("      InvalidClassException in sendByteCode: " + e.getMessage());
+	    // e.printStackTrace();
+	    } catch (NotSerializableException e) {
+		WVM.out.println("      NotSerializableException in sendByteCode: " + e.getMessage());
+		// e.printStackTrace();
+	    } catch (UnknownHostException e) {
+		WVM.out.println("      UnknownHostException in sendByteCode: " + e.getMessage());
+		// e.printStackTrace();
+	    } catch (SecurityException e) {
+		WVM.out.println("      SecurityException in sendByteCode: " + e.getMessage());
+		// e.printStackTrace();
+	    } catch (IOException e) {
+		WVM.out.println("      IOException in sendByteCode: " + e.getMessage());
+	
+	    } finally {
+		try {
+		    if (ois != null) ois.close();
+		    if (oos != null) oos.close();
+		    if (s != null) s.close();
+		} catch (IOException ioe) { }
+	    }
+	}
+	return transmissionComplete;
+	
+    
+    }
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   /** @return whether the transport layer is using secure sockets */
   boolean isSecure() {
@@ -628,6 +804,7 @@ class WVM_Transporter extends Thread {
    * @return success of ping
    */
   protected boolean ping(String wvmURL) {
+      
     WVM.out.println("SHOULD-BE-OVERRIDDEN! WVM_Transporter.ping(String)");
     return false;
   }
@@ -643,6 +820,7 @@ class WVM_Transporter extends Thread {
    * @return success of the send attempt
    */
   protected boolean sendMessage(Object messageKey, Object message, String wvmURL) {
+    	//  System.out.println("WVM_Transporter: sendMessage");
     WVM.out.println("SHOULD-BE-OVERRIDDEN! WVM_Transporter.sendMessage(Object, Object, String)");
     return false;
   }
@@ -657,6 +835,7 @@ class WVM_Transporter extends Thread {
    * @return message that was received
    */
   protected Object getMessage(Object messageKey, String wvmURL) {
+    	//  System.out.println("WVM_Transporter: getMessage");
     WVM.out.println("SHOULD-BE-OVERRIDDEN! WVM_Transporter.getMessage(Object, String)");
     return null;
   }
@@ -717,6 +896,7 @@ class WVM_Transporter extends Thread {
    */
   final boolean sendMessage(Object messageKey, Object message, String host, int port) {
     // 2-do: really!
+    	//  System.out.println("WVM_Transporter: sendMessage2");
     boolean transmissionComplete = false;
 
     Socket s = null;
@@ -766,6 +946,7 @@ class WVM_Transporter extends Thread {
    */
   final Object getMessage(Object messageKey, String host, int port) {
     // 2-do: really!
+    	//	//  System.out.println("WVM_Transporter: getMessage");
     boolean transmissionComplete = false;
     Object message = null;
 

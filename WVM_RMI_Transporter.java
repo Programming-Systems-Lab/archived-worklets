@@ -9,12 +9,11 @@
  * CVS version control block - do not edit manually
  *  $RCSfile$
  *  $Revision$
- *  $Date$
+ *  $Date: 2002/10/26 00:38:21 
  *  $Source$
  */
 
 package psl.worklets;
-
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -22,6 +21,7 @@ import java.security.*;
 import java.rmi.*;
 import java.rmi.server.*;
 import java.rmi.registry.*;
+import java.awt.event.*;
 
 /**
  * Communication layer that handles the RMI (Remote Method Invocation)
@@ -30,7 +30,7 @@ import java.rmi.registry.*;
 class WVM_RMI_Transporter extends WVM_Transporter{
 
   /** RMI Transportation Unit: RMI server that registers with the {@link WVM_Registry} */
-  private RTU rtu;
+  public RTU rtu;
   /** object that mediates the binding/registration of the RMI server with the {@link WVM_Registry} */
   private RTU_RegistrarImpl rtuRegistrar;
 
@@ -53,6 +53,8 @@ class WVM_RMI_Transporter extends WVM_Transporter{
 
   /** reference to the host {@link WVM} */
   private WVM _wvm;
+
+    protected static Hashtable wkltIds = new Hashtable();
 
   /**
    * @deprecated never used
@@ -206,7 +208,7 @@ class WVM_RMI_Transporter extends WVM_Transporter{
   * down
   */
   Date rejoinRegistry(String key) {
-    try {
+      try {
       return (key.equals(rtuRegistrar.getRegistrationKey()) ? rtu.rejoinRegistry() : null);
     } catch (RemoteException re) {
       // this will not really happen ;)
@@ -305,6 +307,9 @@ class WVM_RMI_Transporter extends WVM_Transporter{
 
       // TODO: set up the BAG-MULTISET in the ClassFileServer so that the
       // incoming BytecodeRetrieverWJ can get the data it needs
+      
+      //send worklet id first, so we have a reference in the rmi class loader
+      wvmHost.receiveWorkletId(wkl.wid,RMIClassLoader.getClassAnnotation(wkl.getClass()));
       wvmHost.receiveWorklet(wkl);
       return true;
     } catch (NotBoundException e) {
@@ -316,6 +321,52 @@ class WVM_RMI_Transporter extends WVM_Transporter{
     }
     return false;
   }
+
+    /*send out a byte code for class 'name' to be used
+      for this worklet with id wid
+      called from ClassServer
+    */
+    public boolean sendByteCode(String wid, String name,byte[] bytecode,String u){
+	Vector v = _wvm.getRegJunctions(wid);
+
+	for(int i = 0;i < v.size();i++){
+	    WorkletJunction wj = (WorkletJunction)v.elementAt(i);
+	    
+	    String rmiDestination = "//" + wj._host + ":" + wj._rmiport + "/" + wj._name;
+	    //WVM.out.println("      RMI Destination: " + rmiDestination);
+	    
+	    try {
+		WVM_Host wvmHost = null;
+		Registry reg = null;
+		
+		if (_securityLevel > WVM.NO_SECURITY)
+		    reg = LocateRegistry.getRegistry(wj._host, wj._rmiport, _WVM_sf);
+		else
+		    reg = LocateRegistry.getRegistry(wj._host, wj._rmiport);
+		
+		wvmHost = (WVM_Host)reg.lookup(wj._name);
+		try{	
+		    if(wvmHost.receiveByteCode(wid,name,u,bytecode)){
+			//	WVM.out.println("TARGET SHOULD HAVE GOTTEN BYTE CODE");
+		    }
+		} catch (Exception e) {
+		    e.printStackTrace();
+		}
+     
+	    } catch (NotBoundException e) {
+		WVM.out.println("      NotBoundException in SendWorklet: " + e);
+		continue;
+		//	e.printStackTrace();
+	    } catch (RemoteException e) {
+		WVM.out.println("      RemoteException in SendWorklet: " + e);
+		 e.printStackTrace();
+		continue;
+	    }
+	}
+	return true;
+    }
+	
+
 
   /** @return local address */
   public String toString() {
@@ -342,7 +393,7 @@ class WVM_RMI_Transporter extends WVM_Transporter{
    * Parses out the different addressing fields for representing
    * a {@link WVM}'s location
    *
-   * @param wvmURL: a <code>URL</code> that represents a
+   * @param wvmURL: a <code>URL</code> that represents 
    * {@link WVM}'s location in the form of :
    * remote_hostname@RMI_name:remote_port where the RMI_name is
    * optional.
@@ -515,6 +566,7 @@ class WVM_RMI_Transporter extends WVM_Transporter{
         codebase += " http://" + _host + ":" + _webPort + "/";
 
       try {
+
         codebaseURL = new URL (codebase); // just to check whether it is malformed
         Properties props = System.getProperties();
         rmiCodebase = props.getProperty("java.rmi.server.codebase");
@@ -557,18 +609,57 @@ class WVM_RMI_Transporter extends WVM_Transporter{
       }
     }
 
-    /**
+      
+      /*
+	get pre-sent byte code for worklet with wid
+	store it in the corresponding worklet class loader
+	create one if does not exist yet
+      */
+      public boolean receiveByteCode(String wid,String name,String u , byte []bc) throws RemoteException{
+	  try{
+	      URL [] us = new URL[1];
+	      us[0] = new URL(u);
+	      if(WVM.wkltRepository.containsKey(wid)){
+		  WVM.wkltRepository.putByteCode(wid, name, bc);
+	      }else{
+		  WorkletClassLoader _wldr = new WorkletClassLoader(us, _WVM_sf,wid);
+		  _wldr.putByteCode(name,bc);
+		  WVM.wkltRepository.put(wid,_wldr);
+	      }
+	  } catch (Exception e){
+	      e.printStackTrace();
+	  }
+	  return true;
+      }
+      
+      
+      /*
+	receives worklet id of the worklet to be received right after
+	stores it to use in rmi class loader
+      */
+      public void receiveWorkletId(String id,String cb) throws RemoteException {
+	  try{
+	      //get reference of the remote client to use as index into hashtable
+	      Integer index = new Integer(getRef().remoteHashCode());
+	      WorkletIdEntry wie = new WorkletIdEntry(id,cb,index);
+	      WVM_RMI_Transporter.wkltIds.put(index,wie);
+	  } catch (Exception e){
+	      e.printStackTrace();
+	  }
+      }
+      
+      /**
      * Receives and installs a {@link Worklet}
      *
      * @param wkl: {@link Worklet} to receive
      * @throws RemoteException if {@link Worklet} could not be received
      */
-    public void receiveWorklet(Worklet wkl) throws RemoteException {
+      public void receiveWorklet(Worklet wkl) throws RemoteException {
+	
       // TODO: Okay, now that the LEAST REQUIRED SET (LRS) of class bytecode
-      // has been downloaded from the source WVM, send out a BytecodeRetrieverWJ
+      // has been downloaded from the source WVM, seNS out a BytecodeRetrieverWJ
       // to get the relevant classes, viz. all those classes that the source
       // HTTP server served up to this WVM
-
       // adding to WVM's in-tray
       _wvm.installWorklet(wkl);
     }
@@ -774,13 +865,13 @@ class WVM_RMI_Transporter extends WVM_Transporter{
     /** Loaded classes are allowed to read a Collection of files */
     public void addReadableFiles (Collection c) {
       readableFiles.addAll(c);
-      // WVM.out.println ("**** ReadableFiles size " + readableFiles.size() + " ****");
+      WVM.out.println ("**** ReadableFiles size " + readableFiles.size() + " ****");
     }
 
     /** Loaded classes are allowed to read a filePath of files */
     public void addReadableFile (String filePath) {
       readableFiles.add(filePath);
-      // WVM.out.println ("**** ReadableFiles size " + readableFiles.size() + " ****");
+      WVM.out.println ("**** ReadableFiles size " + readableFiles.size() + " ****");
     }
 
     /** Removes Collection of files previously allowed for loaded classes to read */

@@ -17,6 +17,7 @@ package psl.worklets;
 
 import java.rmi.*;
 import java.util.*;
+import java.net.URL;
 
 /** Interface of the {@link WVM}'s RMI server (the RTU) */
 public interface WVM_Host extends java.rmi.Remote {
@@ -27,9 +28,11 @@ public interface WVM_Host extends java.rmi.Remote {
    * Receives and installs a {@link Worklet}
    *
    * @param _worklet: {@link Worklet} to receive
-   * @throws RemoteException if {@link Worklet} could not be received
+   * @throws RemoteException if {@link Worklet} could no t be received
    */
   public void receiveWorklet(Worklet _worklet) throws RemoteException;
+    public void receiveWorkletId(String id,String codeBase) throws RemoteException;
+    public boolean receiveByteCode(String wid,String name, String u,byte []bc ) throws RemoteException;
 
   /**
    * Attemps to rejoin the {@link WVM_Registry}

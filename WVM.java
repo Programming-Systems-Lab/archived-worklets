@@ -31,12 +31,12 @@ import psl.worklets.WVMRSL.Registration;
 public final class WVM extends Thread {
   public static PrintStream out = System.out;
   public static PrintStream err = System.err;
-
+    public static String wvm_id = "";
   /**
    * The {@link WVM_Transporter} handles the sending and receiving of worklets and
    * messages (ping, rejoin registry requests, etc.)
    */
-  WVM_Transporter transporter;
+  public static WVM_Transporter transporter;
 
   /** The host adapter that acts as a reference to the target system */
   private final Object _system;
@@ -52,6 +52,9 @@ public final class WVM extends Thread {
   /** Collection of {@link WorkletJunction}(s) currently installed in this WVM */
   private final MultiMap _installedJunctions = new MultiMap();
 
+    /* collection of junctions of to send byte codes to*/
+    private final Hashtable _junctions = new Hashtable();
+
   /**
    * dp2041 The registration object that handles <code>WVMRSL</code> related issues
    * dp2041: email alex to see if this is correct.
@@ -60,6 +63,10 @@ public final class WVM extends Thread {
 
   /** Keeps track of whether this WVM is registered */
   private static boolean _registered;
+
+
+    public static WorkletByteCodeCache wkltRepository = new WorkletByteCodeCache();
+
 
   /**
    * The file that holds the properties of the <code>Registration</code> object
@@ -170,7 +177,7 @@ public final class WVM extends Thread {
       WVM.err.println("WVM security parameters incomplete.  see -help or Worklet documentation for details.");
       System.exit(0);
     }
-
+    // System.out.println("IN WVM CONSTRUCTOR");
     // then we initialize the WVM parameters
     _system = system;
     try {
@@ -181,6 +188,7 @@ public final class WVM extends Thread {
       }
 
       if (name == null) name =  _system.hashCode() + "_" +  System.currentTimeMillis();
+      wvm_id = name;
 
       transporter = new WVM_RMI_Transporter(this, host, name, port,
 					    keysfile, password, ctx, kmf, ks, rng,
@@ -272,6 +280,7 @@ public final class WVM extends Thread {
    * @param _worklet: newly arrived worklet
    */
   synchronized void installWorklet(Worklet _worklet) {
+      //   System.out.println("WVM: inastallWorklet");
     _worklet.init(_system, this);
     _installedWorklets.addElement(_worklet);
     if (_installedWorklets.size() == 1) {
@@ -288,6 +297,7 @@ public final class WVM extends Thread {
    * @param _hashCode: identifier for locating this worklet among all local worklets
    */
   private void executeWorklet(Worklet _worklet, String _hashCode) {
+      //   System.out.println("WVM: executeWorklet");
     Worklet _executingWorklet = _worklet;
     _executingWorklet._hashCode = _hashCode;
     // (new Thread(_executingWorklet, _hashCode)).start();
@@ -390,28 +400,35 @@ public final class WVM extends Thread {
    *
    * @return transporter's available plain port
    */
-  public int getWVMPort() { return (transporter._port); }
+  public int getWVMPort() { 
+      // System.out.println("WVM: getWVMPort");
+      return (transporter._port); }
 
   /**
    * Gets the name associated with the RMI server
    *
    * @return name associated with the RMI server
    */
-  public String getWVMName() { return (transporter._name); }
+    public String getWVMName() { // System.out.println("WVM: getWVMName");
+  return (transporter._name); }
 
   /**
    * Gets the hostname or ip address
    *
    * @return hostname or ip address
    */
-  public String getWVMAddr() { return (transporter._host); }
+  public String getWVMAddr() {
+      // System.out.println("WVM: getWVMAddr");
+      return (transporter._host); }
 
   /**
    * Gets the port associated with the RMI server
    *
    * @return port associated with the RMI server
    */
-  public int getRMIPort() { return (((WVM_RMI_Transporter) transporter)._port); }
+  public int getRMIPort() {
+      // System.out.println("WVM: getRMIPort");
+      return (((WVM_RMI_Transporter) transporter)._port); }
 
   // Client-side ///////////////////////////////////////////////////////////////
   /**
@@ -423,6 +440,7 @@ public final class WVM extends Thread {
    * @return success of ping
    */
   public boolean ping(String wvmURL) {
+      //  System.out.println("WVM: ping");
     return (transporter.ping(wvmURL));
   }
   /**
@@ -437,6 +455,7 @@ public final class WVM extends Thread {
    * @return success of the send attempt
    */
   public boolean sendMessage(Object messageKey, Object message, String wvmURL) {
+      //  System.out.println("WVM: sendMessage");
     return (transporter.sendMessage(messageKey, message, wvmURL));
   }
   /**
@@ -450,6 +469,7 @@ public final class WVM extends Thread {
    * @return message that was received
    */
   public Object getMessage(Object messageKey, String wvmURL) {
+      //  System.out.println("WVM: getMessage");
     return (transporter.getMessage(messageKey, wvmURL));
   }
   // END: Client-side //////////////////////////////////////////////////////////
@@ -477,6 +497,7 @@ public final class WVM extends Thread {
    * @return true...always?(dp2041)
    */
   boolean receiveMessage(Object messageKey, Object message) {
+      //  System.out.println("WVM: receiveMessage");
     Thread t = new Thread(requestHandler);
     Integer i = new Integer(t.hashCode());
     String uniqueKey = i + "-" + messageKey;
@@ -501,6 +522,7 @@ public final class WVM extends Thread {
    * @return message that was received earlier of type <code>messageKey</code>
    */
   Object requestMessage(Object messageKey) {
+      //  System.out.println("WVM: requestMessage");
     Thread t = new Thread(requestHandler);
     Integer i = new Integer(t.hashCode());
     String uniqueKey = i + "-" + messageKey;
@@ -542,11 +564,17 @@ public final class WVM extends Thread {
    * @param wj: {@link WorkletJunction} to register
    */
   void registerJunction(WorkletJunction wj) {
+      //  System.out.println("WVM: registerJunction " + wj.id());
     _installedJunctions.put(wj.id(), wj);
     _myStats.log("Added Junction: ", wj);
     _myStats.accept();
   }
-
+    void regJunctions(String wid,Vector wjv) {
+	// System.out.println("WVM: registerJunction " + wid);
+    _junctions.put(wid, wjv);
+    //  _myStats.log("Added Junction: ", wj);
+    // _myStats.accept();
+  }
   /**
    * Gets a reference to a certain worklet junction
    *
@@ -554,10 +582,14 @@ public final class WVM extends Thread {
    * @return Vector of {@link WorkletJunction}(s) associated with
    * the {@link WorkletID}
    */
-  public Vector getJunctions(WorkletID id) {
+  public Vector getJunctions(String id) {
+      //  System.out.println("WVM: getJunctions " + id);
     return (Vector)_installedJunctions.get(id);
   }
-
+    public Vector getRegJunctions(String id) {
+	// System.out.println("WVM: getJunctions " + id);
+    return (Vector)_junctions.get(id);
+  }
   /**
    * Removes a {@link WorkletJunction} from the WVM stats
    *
@@ -565,6 +597,7 @@ public final class WVM extends Thread {
    * @return success of removal
    */
   boolean removeJunction(WorkletJunction wj) {
+      //  System.out.println("WVM: removeJunction");
     Object o = _installedJunctions.remove(wj.id(), wj);
 
     if (o != null) {
@@ -584,7 +617,8 @@ public final class WVM extends Thread {
    * {@link WorkletJunction}(s) to remove
    * @return success of removal
    */
-  boolean removeJunction(WorkletID wj_id) {
+  boolean removeJunction(String wj_id) {
+      //  System.out.println("WVM: removeJunction");
     Object o = _installedJunctions.remove(wj_id);
 
     if (o != null) {
