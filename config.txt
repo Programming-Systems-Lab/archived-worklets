@@ -1,0 +1,7 @@
+#Configuration file
+#input must be in form: 
+#<app>,<host>,<Name>,<port>
+
+Test,dynamo.cs.columbia.edu,WVM1,9101
+Test,disco.cs.columbia.edu,WVM1,9101
+Test,dynasty.cs.columbia.edu,WVM1,9101
