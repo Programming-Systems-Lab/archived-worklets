@@ -24,7 +24,7 @@ dm:    WKL_Demo_Sender.java WKL_Demo_Target.java
 	$(JCC) ${JCFLAGS} WKL_Demo_Sender.java WKL_Demo_Target.java
 
 docs: *.java
-	javadoc -private *.java http/*.java WVMRSL/*.java psl/probelets/Probeable.java
+	javadoc -private *.java http/*.java WVMRSL/*.java ../probelets/Probeable.java
 
 # LaTeX compilation stuff
 ps: ${name}.ps
