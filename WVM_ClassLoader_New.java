@@ -15,7 +15,7 @@ import java.util.*;
 import psl.worklets.http.ClassServer;
 
 class WVM_ClassLoader_New extends WVM_ClassLoader {
-  private URLSet _urlSet;
+  private final URLSet _urlSet;
   WVM_ClassLoader_New(URL[] urls) {  
     super(urls);
     // store these urls into our private ordered, data structure
@@ -114,7 +114,7 @@ GOOD_BLOCK:
   
   private class URLSet extends Vector {
     void add(URL url) {
-      if (! contains(url)) {
+      if (url!= null && !contains(url)) {
         // WVM.out.println("Adding URL at top: " + url);
         // insertElementAt(url, 0);
         addElement(url);
@@ -124,6 +124,13 @@ GOOD_BLOCK:
       for (int i=0; i<urls.length; i++) {
         add(urls[i]);
       }
+    }
+    public String toString() {
+      StringBuffer sb = new StringBuffer();
+      for (Enumeration e = elements(); e.hasMoreElements(); ) {
+        sb.append(" " + e.nextElement().toString());
+      }
+      return sb.toString();
     }
   }
 }

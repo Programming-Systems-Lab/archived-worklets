@@ -1,3 +1,8 @@
+27 February 2001
+================
+  - tiny blackboard within WVM to assist with coordination between
+    locally executing Worklets.
+  
 23 February 2001
 ================
   - RMI Registry 'delegation' takes too long?
