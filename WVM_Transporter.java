@@ -1,18 +1,19 @@
-package psl.worklets;
-
-/* CVS version control block - do not edit manually
+/*
+ * @(#)WVM_Transporter.java
+ *
+ * Copyright (c) 2001: The Trustees of Columbia University in the City of New York.  All Rights Reserved
+ *
+ * Copyright (c) 2001: @author Gaurav S. Kc
+ * Last modified by: Dan Phung (dp2041@cs.columbia.edu)
+ *
+ * CVS version control block - do not edit manually
  *  $RCSfile$
  *  $Revision$
  *  $Date$
  *  $Source$
  */
 
-/**
- * Copyright (c) 2001: The Trustees of Columbia University in the City of New York.  All Rights Reserved
- * 
- * Copyright (c) 2001: @author Gaurav S. Kc
- * 
-*/
+package psl.worklets;
 
 import java.io.*;
 import java.net.*;
@@ -20,52 +21,108 @@ import javax.net.ssl.*;
 import java.util.*;
 import psl.worklets.http.*;
 
+/**
+ * The {@link WVM}'s network transport layer that handles
+ * communication of {@link Worklet}s
+ */
 class WVM_Transporter extends Thread {
-  
+
+  /** The {@link WVM} that this WVM_Transporter provides services for */
   WVM _wvm;
-  
+
+  /** plain network socket number */
   int     _port;
-  String  _host; 
+  /** secure network socket number*/
+  int     _SSLport;
+  /** hostname of local machine */
+  String  _host;
+  /** name that the RMI server is bound to */
   String  _name;
-  protected ServerSocket _serverSocket;		// Regular Server socket
-  protected SSLServerSocket _SSLServerSocket;	// Secure Server socket
+
+  /** plain server socket */
+  protected ServerSocket _serverSocket;
+  /** secure server socket */
+  protected SSLServerSocket _SSLServerSocket;
 
   // set to friendly access so that all the classes in this package can reuse this factory.
-  protected WVM_SSLSocketFactory _WVM_sf;	// our local socket factory.
-  protected int _securityLevel;			// the security level of the WVM.
+  /** secure socket factory */
+  protected WVM_SSLSocketFactory _WVM_sf;
+  /** security level representative of the {@link WVM} */
+  protected int _securityLevel;
 
+  /** Checks to see if the WVM_Transporter is ready for communication */
   private boolean _isActive = false;
 
-  private WVM_ClassLoader_New _loader;
+  /** ClassLoader used to load remote classes */
+  private WVM_ClassLoader _loader;
+  /** plain web server used to serve Worklet classes */
   ClassFileServer _webserver;
+  /** port number that the plain web server is on*/
   int _webPort;
+  /** Checks to see if this WVM_Transporter is serving classes */
   boolean _isClassServer;
-  
+
+  /** secure web server used to serve Worklet classes */
   ClassFileServer _sslwebserver;
+  /** port number that the secure web server is on*/
   int _sslwebPort;
 
+  /** hash of classes locally available */
   HashSet classHashSet;
 
+  /** identifier for sending a ping request */
   protected static final String PING_REQUEST = "Hi, I am pinging you :)";
+  /** identifier for receiving a ping response */
   protected static final String PING_RESPONSE = "Ok, pinging you back!";
 
+  /** identifier for sending a message request */
   protected static final String SENDMSG_REQUEST = "Hi, I am sending you a message :)";
+  /** identifier for receiving a message response */
   protected static final String SENDMSG_RESPONSE = "Ok, I received your message!";
 
+  /** identifier for getting a message request */
   protected static final String GETMSG_REQUEST = "Hi, I am want something that you have :)";
+  /** identifier for getting a message response */
   protected static final String GETMSG_RESPONSE = "Ok, here you go, you can have it!";
-  
+
+  /** identifier for a request to rejoin the registry */
   protected static final String REJOIN_REGISTRY_REQUEST = "Hi, my registry gonna go down";
+  /** identifier for a request to create the registry */
   protected static final String CREATE_REGISTRY_REQUEST = "Hi, ya gotta be the new registry";
 
+  /** identifier for sending a worklet */
   protected static final String WORKLET_XFER = "Yo, I am sending a worklet";
+  /** identifier for reception of a worklet */
   protected static final String WORKLET_RECV = "Yo, I got your worklet";
 
+  /**
+   * Creates the {@link WVM} related network layer composed of sockets
+   *
+   * @param wvm: {@link WVM} that this WVM_tranporter will be providing services for
+   * @param host: hostname of the local machine
+   * @param name: name that the RMI server is bound to
+   * @param port: port number to begin trying to create the network sockets on
+   */
   WVM_Transporter(WVM wvm, String host, String name, int port) {
     this(wvm, host, name, port, null, null, null, null, null, null, 0);
   }
 
-  WVM_Transporter(WVM wvm, String host, String name, int port, 
+  /**
+   * Creates the {@link WVM} related network layer composed of sockets
+   *
+   * @param wvm: {@link WVM} that this WVM_tranporter will be providing services for
+   * @param host: hostname of the local machine
+   * @param name: name that the RMI server is bound to
+   * @param port: port number to begin trying to create the network sockets on
+   * @param keysfile: File holding the public/private keys.
+   * @param password: Password into the keysfile.
+   * @param ctx: <code>SSLContext</code> to use for the secure sockets.
+   * @param kmf: <code>KeyManagerFactory</code> type to use.
+   * @param ks: <code>KeyStore</code> type to use.
+   * @param rng: <code>SecureRandom</code> (random number generator algorithm) to use.
+   * @param securityLevel: Security level of the transporter.
+   */
+  WVM_Transporter(WVM wvm, String host, String name, int port,
                   String keysfile, String password, String ctx, String kmf, String ks, String rng,
                   int securityLevel) {
 
@@ -73,7 +130,6 @@ class WVM_Transporter extends Thread {
     _wvm = wvm;
     _host = host;
     _name = name;
-    _port = port;
     _securityLevel = securityLevel;
 
     WVM.out.println("Creating the sockets transporter layer for the WVM");
@@ -88,10 +144,10 @@ class WVM_Transporter extends Thread {
 
     // dp2041: 29 Aug 2002, always have a plain port for rmi broadcasting.
     // if (_securityLevel < WVM.HIGH_SECURITY)
-    createServerSocket(port, "plain");
-    
+    _port = createServerSocket(port, "plain");
+
     if (_securityLevel > WVM.NO_SECURITY)
-      createServerSocket(port, "secure");
+      _SSLport = createServerSocket(port, "secure");
 
     WVM.out.println ("Creating the Class server(s) layer for the WVM.");
 
@@ -100,37 +156,44 @@ class WVM_Transporter extends Thread {
         _webPort = _webserver.getWebPort();
       }
     }
-    
+
     if (_securityLevel > WVM.NO_SECURITY) {
       if ((_sslwebserver = initWebserver(_WVM_sf, "https")) != null) {
         _sslwebPort = _sslwebserver.getWebPort();
       }
     }
-    
+
     // Load the Class Loader
     Vector urlsVec = null;
     if (_securityLevel < WVM.HIGH_SECURITY)
       urlsVec = _webserver.getAliases();
-    if (_securityLevel > WVM.NO_SECURITY)    
+    if (_securityLevel > WVM.NO_SECURITY)
       urlsVec = _sslwebserver.getAliases();
 
     URL urls[] = new URL[urlsVec.size()];
     String protocol = "";
     if (_securityLevel > WVM.NO_SECURITY)
       protocol = "https:";
-    else 
+    else
       protocol = "file:";
     for (int i=0; i<urls.length; i++) {
       try {
           urls[i] = new URL(protocol + urlsVec.elementAt(i));
-      } catch (MalformedURLException murle) {	  
-        // WVM.err.println("Exception from loading urls in class loader: " + murle);	  
+      } catch (MalformedURLException murle) {
+        // WVM.err.println("Exception from loading urls in class loader: " + murle);
       }
     }
-    if (_securityLevel > WVM.NO_SECURITY) _loader = new WVM_ClassLoader_New(urls, _WVM_sf);
-    else _loader = new WVM_ClassLoader_New(urls);
+    if (_securityLevel > WVM.NO_SECURITY) _loader = new WVM_ClassLoader(urls, _WVM_sf);
+    else _loader = new WVM_ClassLoader(urls);
   }
 
+  /**
+   * Creates a web server for the tranporter layer
+   *
+   * @param sf: Socket factory to use in the web server
+   * @param pcol: protocol to use (ftp, http or https)
+   * @return web server
+   */
   private ClassFileServer initWebserver(WVM_SSLSocketFactory sf, String pcol) {
     // setup [secure/plain] classFileServer
     ClassFileServer ws;
@@ -146,38 +209,50 @@ class WVM_Transporter extends Thread {
     }
   }
 
-  private void createServerSocket(int start_port, String type){
-    while (_port >= start_port) {
+  /**
+   * Creates a server socket
+   *
+   * @param startPort: port number to begin trying to create a server socket on.  It will increment
+   * the port number until a succesful server socket is created.
+   * @param type: "secure" or "plain" socket server
+   * @return port number of succesful server socket
+   */
+  private int createServerSocket(int startPort, String type){
+    int currentPort = startPort;
+    while (currentPort >= startPort) {
       try {
 
         if (type.equals("secure")){
-          _SSLServerSocket = (SSLServerSocket) _WVM_sf.createServerSocket(_port);
-          WVM.out.println("  Secure SocketListener: " + _host + ":" + _port);
+          _SSLServerSocket = (SSLServerSocket) _WVM_sf.createServerSocket(currentPort);
+          WVM.out.println("  Secure SocketListener: " + _host + ":" + currentPort);
         } else {
-          _serverSocket = new ServerSocket(_port);
+          _serverSocket = new ServerSocket(currentPort);
 
-	  // dp2041, I added this so that it "looks" like we don't have any 
+	  // dp2041, I added this so that it "looks" like we don't have any
 	  // plain sockets if we're at HIGH_SECURITY
 	  if(_securityLevel != WVM.HIGH_SECURITY)
-	      WVM.out.println("  Plain SocketListener: " + _host + ":" + _port);
+	      WVM.out.println("  Plain SocketListener: " + _host + ":" + currentPort);
         }
         _isActive = true;
-        break;
+        return currentPort;
 
       } catch (UnknownHostException e) {
         // whut? not possible!
+	break;
       } catch (IllegalArgumentException e) {
           WVM.err.println("Caught exception in createServerSocket: " + e);
-
+	  break;
       } catch (IOException e) {
           // WVM.out.println("IOException, couldn't open port, trying another: " + e);
           // oops, must try another port number;
-          _port++;
+          currentPort++;
           continue;
       }
     }
+    return -1;
   }
 
+  /** shutdown the webservers and server sockets */
   void shutdown() {
     if (_webserver != null) _webserver.shutdown();
     if (_sslwebserver != null) _sslwebserver.shutdown();
@@ -187,7 +262,8 @@ class WVM_Transporter extends Thread {
       if (_SSLServerSocket != null) _SSLServerSocket.close();
     } catch (IOException e) { }
   }
-  
+
+  /** Thread related function.  Waits if it is not active, listens on server sockets if it is active */
   public void run() {
     while (!_isActive) {
       try {
@@ -195,11 +271,17 @@ class WVM_Transporter extends Thread {
         sleep(50);
       } catch (InterruptedException e) { }
     }
-    
+
     listenSocket(_SSLServerSocket, "secure");
     listenSocket(_serverSocket, "plain");
   }
 
+  /**
+   * Start a new thread to listen on the server socket
+   *
+   * @param s: the actual server socket
+   * @param socketType: type of server socket ("plain" or "secure")
+   */
   private void listenSocket(final ServerSocket s, final String socketType) {
     if (s == null) return;
     new Thread() {
@@ -218,11 +300,18 @@ class WVM_Transporter extends Thread {
     }.start();
   }
 
+  /**
+   * After the server socket has accepted a connection, then this function processes the
+   * socket's stream of data
+   *
+   * @param s: the actual server socket
+   * @param socketType: type of server socket ("plain" or "secure")
+   */
   private void processSocketStream(Socket s, String socketType){
     ObjectInputStream ois = null;
     ObjectOutputStream oos = null;
 
-    try { 
+    try {
       ois = new ObjectInputStream(s.getInputStream()) {
         protected Class resolveClass(ObjectStreamClass v) throws IOException, ClassNotFoundException {
         String name = v.getName();
@@ -234,8 +323,8 @@ class WVM_Transporter extends Thread {
 
       oos = new ObjectOutputStream(s.getOutputStream());
       String requestType = ois.readUTF();
-      
-      if (socketType.equals("plain") && _securityLevel == 3 
+
+      if (socketType.equals("plain") && _securityLevel == 3
 	  && !(requestType.equals(SENDMSG_REQUEST) || requestType.equals(GETMSG_REQUEST))){
 	// dp2041: we only want this socket to serve the rejoin registry request in this case.
 	// WVM.err.println("Error, secure server proccessing request other than a rejoin registry request");
@@ -300,7 +389,7 @@ class WVM_Transporter extends Thread {
           // e.printStackTrace();
           return;
         }
-      }
+        }
 
       Worklet wkl = null;
       try {
@@ -313,7 +402,7 @@ class WVM_Transporter extends Thread {
           // send out BytecodeRetrieverWJ w/ a Worklet to retrieve all URLLoaded classes
           // new BytecodeRetrieval(classHashSet, _wvm, _host, _name, _port, rHost, rName, rPort);
         }
-        
+
         // Now, send acknowledgement back to sender WVM
         oos.writeUTF(WORKLET_RECV);
         oos.flush();
@@ -324,8 +413,7 @@ class WVM_Transporter extends Thread {
         System.exit(0);
       }
 
-      // adding to WVM's in-tray, and *do* need to send out BytecodeRetrieval worklet
-      wkl.retrieveBytecode = true;
+      // adding to WVM's in-tray
       _wvm.installWorklet(wkl);
     } catch (ClassNotFoundException cnfe) {
       WVM.out.println("ClassNotFoundException when receiving message from peer, cnfe: " + cnfe);
@@ -348,6 +436,11 @@ class WVM_Transporter extends Thread {
     return;
   }
 
+  /**
+   * Adds the codebase to the current vector of class servers
+   *
+   * @param codebase: URL of server where code could be
+   */
   private void addCodebase(String codebase) {
     StringTokenizer st = new StringTokenizer (codebase, " ");
     Vector urlsVec = new Vector();
@@ -366,12 +459,23 @@ class WVM_Transporter extends Thread {
     URL urls[] = new URL[urlsVec.size()];
     urlsVec.toArray(urls);
     if (_loader == null) {
-      _loader = new WVM_ClassLoader_New(urls);
+      _loader = new WVM_ClassLoader(urls);
     } else {
       _loader.addCodebase(urls);
     }
   }
 
+  /**
+   * Sends the {@link Worklet} to the {@link WVM}.  This
+   * function is a wrapper for <code>sendSocket</code> that collects
+   * the information from the {@link WorkletJunction} to pass on
+   * the transport method preferences
+   *
+   * @param wkl: {@link Worklet} to send
+   * @param wj: current {@link WorkletJunction} holding
+   * next addressing info
+   * @return success of the send
+   */
   boolean sendWorklet(Worklet wkl, WorkletJunction wj) {
     String[] methods = wj.getTransportMethods();
 
@@ -392,28 +496,38 @@ class WVM_Transporter extends Thread {
         } catch (Exception e){
           WVM.err.println("  --  Error sending through plainSocket: " + e);
         }
-      
+
       if (success)
         break;
     }
     return success;
   }
 
-  boolean sendSocket(Worklet wkl, WorkletJunction wj, boolean secure){    
+  /**
+   * Sends the {@link Worklet} to the {@link WVM} as
+   * directed by the {@link WorkletJunction}'s addressing info
+   *
+   * @param wkl: {@link Worklet} to send
+   * @param wj: current {@link WorkletJunction} holding
+   * next addressing info
+   * @param secure: true if socket used should be a secure socket
+   * @return success of the send
+   */
+  boolean sendSocket(Worklet wkl, WorkletJunction wj, boolean secure){
     String targetHost = wj._host;
     int targetPort = wj._port;
     boolean transmissionComplete = false;
     Socket s = null;
-    
+
     ObjectOutputStream oos = null;
     ObjectInputStream ois = null;
-    
+
     try {
       if (secure && _WVM_sf != null)
         s = _WVM_sf.createSocket(targetHost, targetPort);
-      else if (!secure) 
+      else if (!secure)
         s = new Socket(targetHost, targetPort);
-      else 
+      else
         return false;
 
       oos = new ObjectOutputStream(s.getOutputStream());
@@ -458,14 +572,14 @@ class WVM_Transporter extends Thread {
               WVM.out.println("mySource unavailable, sending codebase: " + codebase);
             }
           }
-          
+
           // WVM.out.println("codebase of workletJunction: " + codebase);
           oos.writeUTF(cName);
           oos.writeUTF(codebase);
         }
       }
 
-      // TODO: set up the BAG-MULTISET in the ClassFileServer so that the 
+      // TODO: set up the BAG-MULTISET in the ClassFileServer so that the
       // incoming BytecodeRetrieverWJ can get the data it needs
       oos.writeObject(wkl);
       oos.flush();
@@ -498,31 +612,72 @@ class WVM_Transporter extends Thread {
       return transmissionComplete;
     }
   }
-  
+
+  /** @return whether the transport layer is using secure sockets */
+  boolean isSecure() {
+    return (_securityLevel > WVM.NO_SECURITY);
+  }
+
   // Client-side - should be overridden ////////////////////////////////////////
+  /**
+   * Client side: Pings a remote {@link WVM}
+   *
+   * @param wvmURL: a URL that represents a wvm location in the form
+   * of : remote_hostname@RMI_name:remote_port where the RMI_name is
+   * optional
+   * @return success of ping
+   */
   protected boolean ping(String wvmURL) {
     WVM.out.println("SHOULD-BE-OVERRIDDEN! WVM_Transporter.ping(String)");
     return false;
   }
+  /**
+   * Client side: Sends a message to a remote {@link WVM}
+   *
+   * @param messageKey: type of message that you are sending, defined
+   * in {@link WVM_Transporter}
+   * @param message: actual message to send
+   * @param wvmURL: a URL that represents a wvm location in the form
+   * of : remote_hostname@RMI_name:remote_port where the RMI_name is
+   * optional
+   * @return success of the send attempt
+   */
   protected boolean sendMessage(Object messageKey, Object message, String wvmURL) {
     WVM.out.println("SHOULD-BE-OVERRIDDEN! WVM_Transporter.sendMessage(Object, Object, String)");
     return false;
   }
+  /**
+   * Client side: Requests to get a message from the remote {@link WVM}
+   *
+   * @param messageKey: type of message being requested, defined
+   * in {@link WVM_Transporter}
+   * @param wvmURL: a URL that represents a wvm location in the form
+   * of : remote_hostname@RMI_name:remote_port where the RMI_name is
+   * optional.
+   * @return message that was received
+   */
   protected Object getMessage(Object messageKey, String wvmURL) {
     WVM.out.println("SHOULD-BE-OVERRIDDEN! WVM_Transporter.getMessage(Object, String)");
     return null;
   }
   // END: Client-side - should be overridden ///////////////////////////////////
-  
+
   // Client-side ///////////////////////////////////////////////////////////////
+  /**
+   * Client side: Pings a remote {@link WVM}
+   *
+   * @param host: hostname to ping
+   * @param port: port to ping through
+   * @return success of ping
+   */
   final boolean ping(String host, int port) {
     // 2-do: really!
     boolean transmissionComplete = false;
-    
+
     Socket s = null;
     ObjectOutputStream oos = null;
     ObjectInputStream ois = null;
-    
+
     try {
       WVM.out.println("  --  pinging peer WVM thru sockets: " + host + ":" + port);
       s = new Socket(host, port);
@@ -550,14 +705,24 @@ class WVM_Transporter extends Thread {
       return transmissionComplete;
     }
   }
+  /**
+   * Client side: Sends a message to a remote {@link WVM}
+   *
+   * @param messageKey: type of message that you are sending, defined
+   * in {@link WVM_Transporter}
+   * @param message: actual message to send
+   * @param host: hostname to ping
+   * @param port: port to ping through
+   * @return success of the send attempt
+   */
   final boolean sendMessage(Object messageKey, Object message, String host, int port) {
     // 2-do: really!
     boolean transmissionComplete = false;
-    
+
     Socket s = null;
     ObjectOutputStream oos = null;
     ObjectInputStream ois = null;
-    
+
     try {
       WVM.out.println("  --  sending message to peer WVM thru sockets: " + host + ":" + port);
       s = new Socket(host, port);
@@ -590,15 +755,24 @@ class WVM_Transporter extends Thread {
       return transmissionComplete;
     }
   }
+  /**
+   * Client side: Requests to get a message from the remote {@link WVM}
+   *
+   * @param messageKey: type of message being requested, defined
+   * in {@link WVM_Transporter}
+   * @param host: hostname to ping
+   * @param port: port to ping through
+   * @return message that was received
+   */
   final Object getMessage(Object messageKey, String host, int port) {
     // 2-do: really!
     boolean transmissionComplete = false;
     Object message = null;
-    
+
     Socket s = null;
     ObjectOutputStream oos = null;
     ObjectInputStream ois = null;
-    
+
     try {
       WVM.out.println("  --  getting message from peer WVM thru sockets: " + host + ":" + port);
       s = new Socket(host, port);
@@ -634,8 +808,4 @@ class WVM_Transporter extends Thread {
     }
   }
   // END: Client-side //////////////////////////////////////////////////////////
-
-  boolean isSecure() {
-    return (_securityLevel > WVM.NO_SECURITY);
-  }
 }
