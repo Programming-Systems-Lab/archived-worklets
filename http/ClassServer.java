@@ -110,7 +110,7 @@ public abstract class ClassServer implements Runnable {
         String path = getPath(in);
         // retrieve bytecodes
         byte[] bytecodes = getBytes(path);
-    		// WVM.out.println("Retrieved bytecodes: " + bytecodes.length);
+        WVM.out.println("Retrieved bytecodes: " + bytecodes.length);
 
         // cache the bytecodes to be sent out: added Gskc @ 21March2001
         if (!bytecodeCache.containsKey(path)) {
@@ -118,27 +118,27 @@ public abstract class ClassServer implements Runnable {
           bytecodeCache.put(path, bytecodes);
         }
 
-				// okay, the bytecode is definitely available locally
-				// TODO: update the BAG-MULTISET for the http client
-				// InetAddress ip = socket.getInetAddress();
-				int port = socket.getPort();
-				// WVM.out.println("ip: " + ip);
-				WVM.out.println("port: " + port);
-				// this will pose a problem: how do we figure out which process
-				// on the remote site made this request ... ie which BAG-MULTISET
-				// do we update for this http request?
+        // okay, the bytecode is definitely available locally
+        // TODO: update the BAG-MULTISET for the http client
+        // InetAddress ip = socket.getInetAddress();
+        int port = socket.getPort();
+        // WVM.out.println("ip: " + ip);
+        // WVM.out.println("port: " + port);
+        // this will pose a problem: how do we figure out which process
+        // on the remote site made this request ... ie which BAG-MULTISET
+        // do we update for this http request?
 
 
         // send bytecodes in response (assumes HTTP/1.0 or later)
         try {
-					// TODO: do an http put on the remote site's webserver
-					// the remote site's webserver's port is specified in this http request header
+          // TODO: do an http put on the remote site's webserver
+          // the remote site's webserver's port is specified in this http request header
           out.writeBytes("HTTP/1.0 200 OK\r\n");
           out.writeBytes("Content-Length: " + bytecodes.length + "\r\n");
           out.writeBytes("Content-Type: application/java\r\n\r\n");
           out.write(bytecodes);
           out.flush();
-          WVM.out.println("Wrote : " + path + " out to http client");
+          // WVM.out.println("Wrote : " + path + " out to http client");
         } catch (IOException ie) {
           return;
         }
@@ -189,7 +189,7 @@ public abstract class ClassServer implements Runnable {
       int index = line.indexOf(".class ");
       if (index != -1) {
         path = line.substring(0, index).replace('/', '.');
-        WVM.out.println ("path is: " + path);
+        // WVM.out.println ("path is: " + path);
       }
     }
 

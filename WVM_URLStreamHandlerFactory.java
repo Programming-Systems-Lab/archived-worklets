@@ -1,6 +1,7 @@
 package psl.worklets;
 
 /**
+ *
  * Copyright (c) 2001: The Trustees of Columbia University in the City of New York.  All Rights Reserved
  * 
  * Copyright (c) 2001: @author Gaurav S. Kc
@@ -13,13 +14,16 @@ import java.util.*;
 
 public class WVM_URLStreamHandlerFactory implements URLStreamHandlerFactory {
   public URLStreamHandler createURLStreamHandler(String protocol) {
+    WVM.out.println(" + + + WVM_URLStreamHandlerFactory.createURLStreamHandler(" + protocol + ");");
     if (protocol.equalsIgnoreCase("http")) {
       return (new WVM_HttpHandler());
     } else if (protocol.equalsIgnoreCase("file")) {
-      return (new WVM_HttpHandler());
+      return (new sun.net.www.protocol.file.Handler());
+    } else if (protocol.equalsIgnoreCase("jar")) {
+      return (new sun.net.www.protocol.jar.Handler());
     }
 
-    WVM.out.println("Protocol: " + protocol);
+    WVM.out.println("Unsupported protocol: " + protocol);
     return null;
   }
 }
@@ -49,17 +53,18 @@ class WVM_URLConnection extends HttpURLConnection {
     ps.print("GET " + url.getFile() + " HTTP/1.1\r\n");
     // ps.println("Remote: " + WVM.transporter._name + "\r\n");
     // ps.print("User-Agent: WVM_ClassLoader - Java\r\n");
-    ps.print("User-Agent: Java1.3.0\r\n");
+    ps.print("User-Agent: WKLJava1.3.0\r\n");
     ps.print("Host: " + url.getHost() + ":" + port + "\r\n");
     ps.print("Accept: text/html, image/gif, image/jpeg, *; q=.2, */*; q=.2\r\n");
     ps.print("Connection: keep-alive\r\n");
     // ps.print("WVM URL Connection\r\n");
-		ps.print("\r\n");
-		ps.flush();
+    ps.print("\r\n");
+    ps.flush();
     // is = new BufferedInputStream(s.getInputStream());
     is = s.getInputStream();
     connected = true;
-		WVM.out.println(" ~ ~ ~ ~ ~ in connect: " + url + ", is: " + is.available());
+    try { Thread.currentThread().sleep(5000); } catch (InterruptedException ie) { }
+    WVM.out.println(" ~ ~ ~ ~ ~ in connect: " + url + ", is: " + is.available());
   }
 
   InputStream is;
@@ -67,15 +72,15 @@ class WVM_URLConnection extends HttpURLConnection {
     if (!connected) {
       connect();
     }
-		// WVM.out.println(" ~ ~ ~ ~ ~ in getInputStream: " + url);
+    // WVM.out.println(" ~ ~ ~ ~ ~ in getInputStream: " + url);
     return (is);
   }
-	public int getResponseCode() throws IOException {
-		int superResponse = super.getResponseCode();
-		// WVM.out.println(" ~ ~ ~ ~ ~ Response code: " + superResponse);
-		// Thread.currentThread().dumpStack();
-		return superResponse;
-	}
+  public int getResponseCode() throws IOException {
+    int superResponse = super.getResponseCode();
+    // WVM.out.println(" ~ ~ ~ ~ ~ Response code: " + superResponse);
+    // Thread.currentThread().dumpStack();
+    return superResponse;
+  }
 
   public String getContentType() {
     return (guessContentTypeFromName(url.getFile()));
@@ -85,13 +90,13 @@ class WVM_URLConnection extends HttpURLConnection {
     try {
     if (s != null) s.close();
     } catch (IOException e) { } 
-		connected = false;
+    connected = false;
   }
   public boolean usingProxy() {
     return false;
   }
 
-	/*
+  /*
   private void writeRequests() throws IOException {
     /* print all message headers in the MessageHeader 
      * onto the wire - all the ones we've set and any
@@ -228,6 +233,6 @@ class WVM_URLConnection extends HttpURLConnection {
     // constructor to HTTP client calls openserver
     connected = true;
   }
-	*/
+  */
 
 }

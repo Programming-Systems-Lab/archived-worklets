@@ -15,6 +15,8 @@ import java.util.*;
 class WVM_ClassLoader extends URLClassLoader {
   WVM_ClassLoader(URL[] urls) {  
     super(urls);
+    // super(urls, null, new WVM_URLStreamHandlerFactory());
+    // WVM.out.println("Added: gskc, 06-March-2001 -- customised URLStreamHandlerFactory in WVM_ClassLoader");
   }
   public Class findClass(String name) throws ClassNotFoundException {
     // WVM.out.println(" ... loading class through URLClassLoader: " + name);
@@ -44,21 +46,21 @@ class WVM_ClassLoader extends URLClassLoader {
         hs.add(name);
       }
 
-			/*
-			// 2-try: instead of adding NAME of class to hashset, add bytecode to http server's cache
-			InputStream is = super.getResourceAsStream(name);
-			WVM.out.println("input stream: " + is);
-			WVM.out.println("name: " + name);
-			byte []bytecode = new byte[is.available()];
-			is.read(bytecode);
-			WVM.out.println(bytecode);
-			*/
+      /*
+      // 2-try: instead of adding NAME of class to hashset, add bytecode to http server's cache
+      InputStream is = super.getResourceAsStream(name);
+      WVM.out.println("input stream: " + is);
+      WVM.out.println("name: " + name);
+      byte []bytecode = new byte[is.available()];
+      is.read(bytecode);
+      WVM.out.println(bytecode);
+      */
 
       return (c);
     } catch (Exception e) {
       WVM.out.println("in WVM_ClassLoader, Exception e: " + e.getMessage());
-			e.printStackTrace();
-			return null;
+      e.printStackTrace();
+      return null;
     }
   }
   public void addCodebase(URL[] urls) {

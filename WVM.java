@@ -1,6 +1,5 @@
 package psl.worklets;
 
-
 /**
  *
  * Copyright (c) 2001: The Trustees of Columbia University in the City of New York.  All Rights Reserved
@@ -30,7 +29,7 @@ public final class WVM extends Thread {
 
   public WVM(Object system, String host, String name, int port) {
     WVM.out.println("WVM created");
-    // URL.setURLStreamHandlerFactory(new WVM_URLStreamHandlerFactory());
+    URL.setURLStreamHandlerFactory(new WVM_URLStreamHandlerFactory());
     start();
     _system = system;
     try {
