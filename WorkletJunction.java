@@ -26,7 +26,7 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
-public abstract class WorkletJunction extends Thread implements Serializable, Runnable {
+public abstract class WorkletJunction implements Serializable, Runnable {
 
   // addressing info
   protected String _host;
@@ -129,6 +129,14 @@ public abstract class WorkletJunction extends Thread implements Serializable, Ru
     _junctionPlanner.setState(state);
   }
 
+  final int getPriority() {
+    return _priority;
+  }
+
+  final void setPriority(int priority) {
+    _priority = priority;
+  }
+
   final int state() {
     if (_junctionPlanner != null) return _junctionPlanner.state();
     else return -1;
@@ -162,7 +170,7 @@ public abstract class WorkletJunction extends Thread implements Serializable, Ru
     return (_host);
   }
 
-  final String getWVMName() {
+  final String getName() {
     return (_name);
   }
 

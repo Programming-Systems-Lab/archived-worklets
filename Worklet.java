@@ -18,7 +18,7 @@ package psl.worklets;
 import java.io.*;
 import java.util.*;
 
-public final class Worklet implements Runnable, Serializable {
+public final class Worklet implements Serializable {
 
   private transient WVM _wvm;
   private transient Object _system;
@@ -73,11 +73,6 @@ public final class Worklet implements Runnable, Serializable {
       _wjClasses.removeElement(_currentJunction.getClass());
       _currentJunction.sysInit(system, wvm);
     }
-  }
-
-  /** not to be invoked externally */
-  public void run() {
-    execute();
   }
 
   void execute() {
