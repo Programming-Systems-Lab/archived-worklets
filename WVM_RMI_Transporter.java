@@ -16,7 +16,7 @@ import java.rmi.*;
 import java.rmi.server.*;
 import java.rmi.registry.*;
 
-public class WVM_RMI_Transporter extends WVM_Transporter {
+class WVM_RMI_Transporter extends WVM_Transporter {
   
   private RTU rtu;
   private boolean rmiService;
@@ -55,7 +55,6 @@ public class WVM_RMI_Transporter extends WVM_Transporter {
       System.out.println("Creating RMI Registry: " + _host + ":" + _port);
       rmiRegistry = LocateRegistry.createRegistry(9100);
       registryService = true;
-      System.out.println("Class of registry: " + rmiRegistry.getClass().getName());
     } catch (RemoteException e) {
       System.out.println("Could not create the RMI Registry");
       rmiRegistry = null;

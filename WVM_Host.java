@@ -12,7 +12,7 @@ package psl.worklets;
 import java.rmi.*;
 import java.util.*;
 
-public interface WVM_Host extends java.rmi.Remote {
+interface WVM_Host extends java.rmi.Remote {
   public final static int PORT = 9100;
   public void receiveWorklet(Worklet _worklet) throws RemoteException;
   public Date rejoinRegistry() throws RemoteException;

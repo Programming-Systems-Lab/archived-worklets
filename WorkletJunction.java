@@ -1,8 +1,5 @@
 package psl.worklets;
 
-import java.io.*;
-
-
 /**
  *
  * Copyright (c) 2001: The Trustees of Columbia University in the City of New York.  All Rights Reserved
@@ -10,6 +7,8 @@ import java.io.*;
  * Copyright (c) 2001: @author Gaurav S. Kc 
  * 
 */
+
+import java.io.*;
 
 public abstract class WorkletJunction implements Serializable {
 
@@ -27,7 +26,7 @@ public abstract class WorkletJunction implements Serializable {
   }
 
   public WorkletJunction(String host, int port) {
-    this(host, "", port);
+    this(host, "WVM", port);
   }
 
   public WorkletJunction(String host, String name, int port) {
@@ -36,27 +35,27 @@ public abstract class WorkletJunction implements Serializable {
     _port = port;
   }
 
-  public void setOriginWorkletJunction(WorkletJunction origin) {
+  void setOriginWorkletJunction(WorkletJunction origin) {
     _originJunction = origin;
   }
 
-  public void init(Object system, WVM wvm) {
+  protected void init(Object system, WVM wvm) {
     _system = system;
     _wvm = wvm;
   }
 
-  public abstract void execute();
+  protected abstract void execute();
   // Sub-classes must provide specific implementations
 
-  public String getHost() {
+  String getHost() {
     return (_host);
   }
 
-  public String getName() {
+  String getName() {
     return (_name);
   }
 
-  public int getPort() {
+  int getPort() {
     return (_port);
   }
 

@@ -36,7 +36,7 @@ public final class Worklet implements Serializable {
     }
   }
   
-  public void init(Object system, WVM wvm) {
+  void init(Object system, WVM wvm) {
     _wvm = wvm;
     _system = system;    
     if (_atOrigin) {
@@ -46,7 +46,7 @@ public final class Worklet implements Serializable {
     }
   }
   
-  public void execute() {
+  void execute() {
     if (_atOrigin) {
       _originJunction.execute();
     } else {
@@ -67,7 +67,7 @@ public final class Worklet implements Serializable {
     wvm.transporter.sendWorklet(this, _currentJunction);
   }
   
-  public void moveToNextJunction() {
+  void moveToNextJunction() {
     WVM _tmpWVM = _wvm;
     synchronized (_junctions) {
       _currentJunction = (WorkletJunction) _junctions.firstElement();
@@ -77,7 +77,7 @@ public final class Worklet implements Serializable {
     _tmpWVM.transporter.sendWorklet(this, _currentJunction);
   }
 
-  public void returnToOrigin() {
+  void returnToOrigin() {
     WVM _tmpWVM = _wvm;
     _atOrigin = true;
     _currentJunction = null;

@@ -13,7 +13,7 @@ import java.net.*;
 import java.util.*;
 
 public final class WVM extends Thread {
-  public WVM_Transporter transporter;
+  WVM_Transporter transporter;
   
   private Object _system;
   

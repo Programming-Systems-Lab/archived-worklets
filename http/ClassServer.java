@@ -36,7 +36,7 @@ import java.net.*;
  *
  * @see ClassFileServer
  */
-public abstract class ClassServer
+abstract class ClassServer
 
 implements Runnable
 {
